@@ -1,0 +1,21 @@
+{
+    "database_connection": {
+        "driver": "{PostgreSQL Unicode(x64)}",
+        "server": "localhost",
+        "server2": "pldownload.c0vx0pxhldek.us-west-2.rds.amazonaws.com",
+        "database": "pldownload",
+        "user": "postgres",
+        "password": "Pa55word",
+        "port": 5432
+    },
+    "socket_server":{
+        "socket_host": "localhost",
+        "socket_port": 999
+    },
+    "file_directory": "C:/Users/kuno/Documents/pld/",
+    "secret_key": "kuno secret key",
+    "scrapper_workers": 4,
+    "downloader_workers": 16,
+    "timeout_linkgenerator": 20,
+    "spotify_token": "YmEzOTMxOGMzNGUxNDdiNjgwYWY5NzdkMjdiZmIzZTc6NTFiNThiNTQ4NDAzNDYxZjg2MzI1NzM2MTE4NjBlZWY="
+}

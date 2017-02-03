@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import requests
+import re
 from queue import Queue
 from threading import Thread
 
@@ -18,6 +19,28 @@ class Scrapper(Thread):
 
         if self.is_alive():
             self.join()
+
+class Vubey(Scrapper):
+    def __init__(self, queue, idvideo, timeout=10):
+        Scrapper.__init__(self, queue, idvideo, timeout)
+
+    def run(self):
+        try:
+            self.get_link()
+        except:
+            print("Vubey error:", sys.exc_info()[0])
+
+    def get_link(self):
+        youtubeid = "https://www.youtube.com/watch?v=" + self.id_video
+        headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Accept-Encoding': 'gzip, deflate, br'}
+        data = {'videoURL': youtubeid, 'quality': '320', 'submit': 'Convert+To+MP3'}
+        r = requests.post('https://vubey.yt/', headers=headers, data=data)
+        urlredir = re.search(r'download=(.*?)">', str(r.content)).group(1)
+        r = requests.get('https://vubey.yt/?download={}'.format(urlredir), headers=headers)
+        while re.search(r'Please wait', str(r.content)):
+            r = requests.get('https://vubey.yt/?download={}'.format(urlredir), headers=headers)
+        urlfinal = re.search(r'https:\/\/dl1\.tubeapi\.com.+?(?=\")', str(r.content)).group()
+        self.queue.put(urlfinal)
 
 class Mp3Cc(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):

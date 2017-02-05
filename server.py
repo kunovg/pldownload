@@ -2,7 +2,6 @@
 import json
 import os
 import datetime
-import time
 import utils.sql as SQL
 import utils.utils as U
 import utils.pwsecurity as PWS
@@ -107,7 +106,6 @@ def update():
 
 @app.route('/dl/<uuid>', methods=['GET', 'POST'])
 def download(uuid):
-    t1 = time.time()
     log.write("{}\t Download {}\n".format(datetime.datetime.now(), uuid))
     fop = request.args.get('fop')
     title = U.prepare_string_for_file(request.args.get('title'))
@@ -143,12 +141,10 @@ def download(uuid):
     this_playlist_queue.join()
     U.create_zip(folder_uuid=pl_directory, file_name=DIRECTORY + title)
     U.delete_files(pl_directory)
-    print("Time elapsed: {}".format(time.time()-t1))
     return send_file(filename_or_fp="{}.zip".format(DIRECTORY + title), mimetype="application/zip", as_attachment=True)
 
 @app.route('/freedownload', methods=['POST'])
 def freedownload():
-    t1 = time.time()
     # temp_id = request.form['temp_id']
     playlist_url = request.form['playlist_url']
     log.write("{} user: {} playlist{}".format(datetime.datetime.now(), None, playlist_url))
@@ -156,7 +152,7 @@ def freedownload():
     pl_directory = DIRECTORY + uuid
     U.crate_dir(pl_directory)
     this_playlist_queue = Queue()
-    this_playlist_queue.put(True)
+    this_playlist_queue.put(True)  # To Trigger the join
     if 'youtu' in playlist_url:
         title = U.get_yt_playlist_title(playlist_url)
         total_songs = U.count_youtube_playlist(playlist_url)
@@ -188,7 +184,6 @@ def freedownload():
     log.write("{} Creando Comprimido {}\n".format(datetime.datetime.now(), 'ANON'))
     U.create_zip(folder_uuid=pl_directory, file_name=pl_directory)
     U.delete_files(pl_directory)
-    print("Time elapsed: {}".format(time.time()-t1))
     return (uuid, 200)
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -275,4 +270,4 @@ if __name__ == "__main__":
         scrapper.daemon = True
         scrapper.start()
     print("TIMEOUT: {}\tDOWNLOADERS: {}".format(CONFIG['timeout_linkgenerator'], CONFIG['downloader_workers']))
-    app.run(host='0.0.0.0', debug=False, threaded=True, port=5001)
+    app.run(host='0.0.0.0', debug=True, threaded=True, port=5001)

@@ -158,7 +158,7 @@ class LinkGeneratorWorker(Thread):
                 self.linksqueue.put((filepath, mp3name, link, c, t, playlist_queue))
             except:
                 playlist_queue.put(True)
-                print('Ningun metodo pudo obtener el link en menos de {} segundos'.format(self.maxtime))
+                print('Ningun metodo pudo obtener el link en menos de {} segundos {}'.format(self.maxtime, playlist_queue.qsize()))
             self.idsqueue.task_done()
 
 class LinkDownloaderWorker(Thread):
@@ -170,12 +170,13 @@ class LinkDownloaderWorker(Thread):
         while True:
             # Get the work from the queue and expand the tuple
             filepath, mp3name, link, c, t, playlist_queue = self.linksqueue.get()
-            print('{} Link: {}'.format(c, link))
             try:
                 completesongname = os.path.join(filepath, '{}.mp3'.format(mp3name))
                 b = 0
                 while b < 10000:
                     r = requests.get(link, stream=True)
+                    if r.status_code == 404:
+                        break
                     with open(completesongname, "wb") as code:
                         for chunk in r.iter_content(1024):
                             if not chunk:
@@ -183,13 +184,14 @@ class LinkDownloaderWorker(Thread):
                             code.write(chunk)
                     b = os.path.getsize(completesongname)
                 print('Descargada {} de {}'.format(c, t))
-                playlist_queue.put(True)
-                if playlist_queue.qsize() == t+1:
-                    print('Playlist downloaded')
-                    while not playlist_queue.empty():
-                        playlist_queue.get()
-                        playlist_queue.task_done()
             except:
                 pass
+
+            playlist_queue.put(True)
+            if playlist_queue.qsize() == t+1:
+                print('Playlist downloaded')
+                while not playlist_queue.empty():
+                    playlist_queue.get()
+                    playlist_queue.task_done()
 
             self.linksqueue.task_done()

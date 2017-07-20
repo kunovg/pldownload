@@ -1,0 +1,45 @@
+html {height: 100%;}
+body {height: 100%;background: #1c2441;color: white;font-family: 'Roboto';margin: 0;}
+h1,h2,h3,h4,h5,h6{margin: 10px 0;color: white;}
+h1 {font-size: 60px;}
+h3 {font-weight: 300;font-size: 30px;}
+a{text-decoration: underline white;}
+/**************************
+    MAIN COMPONENT
+**************************/
+.mc-container{width: 100%;text-align: center;}
+.mc-input{background: transparent;border: 2px solid white;font-size: 18px;padding: 20px 10px;width: 75%;}
+.mc-button{display: block;margin: auto;padding: 10px 20px;}
+.bottom-border{padding-bottom: 5px;border:none;border-bottom: 1px solid white;}
+.bottom-border:focus{outline-width: 0;border-bottom: 1px solid #23dccc;}
+.inline-button{display: inline-block;margin-left: 10px;padding: 10px 10px 6px;}
+/**************************
+    USER COMPONENT
+**************************/
+.pld-progress-bar{margin: 0;}
+.pl-table-row{color: #00fdff;}
+.pl-name{text-decoration: none; color: inherit;}
+.pl-name:hover{color: red; text-decoration: none}
+.pl-button{color: inherit;}
+.pl-button:hover{color: red;}
+/**************************
+    HEADER COMPONENT
+**************************/
+.hc-container{width: 100%;height: auto;overflow: hidden;}
+.hc-button{float:right;margin: 5px;}
+.hc-input{border: 2px solid #1c2441;font-size: 18px;padding: 10px;width: 100%;margin-top: 5px;}
+.login-button{color: white;}
+.header-form-button{padding: 6px 30px;margin-right: 0;}
+.valid-input{background-color: #c4ffb4;}
+.invalid-input{background-color: #ffb4b4;}
+.body-loading{position: absolute;top: 20%;width: 100%;height: 300px;background: url('../img/oie_JTRu1P0lbABF.gif') no-repeat center center;}
+.header-loading{position: absolute;width: 100px;height: 155px;top: 0;background: url('../img/91.gif') no-repeat center center;}
+#loginForm{position: absolute;background: white;top: 45px;right: 15px;width: 250px;height: auto;padding: 20px;color: #333;}
+#registerForm{position: absolute;background: white;top: 45px;right: 15px;width: 250px;height: auto;padding: 20px;color: #333;}
+#playliststable{width:70%;margin:auto;margin-top: 30px;}
+@media(min-width: 720px){
+    .mc-input{width: 50%;}
+}
+@media(min-width: 1100px){
+    .mc-input{width: 40%;}
+}

@@ -51,7 +51,6 @@ static/js/*
 
 # Front end #
 #############
-*/node_modules/
-*/babel_cache/
-**/static/js/
-**/instrucciones.txt
+node_modules/
+babel_cache/
+static/js/

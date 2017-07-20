@@ -17,11 +17,15 @@ a{text-decoration: underline white;}
     USER COMPONENT
 **************************/
 .pld-progress-bar{margin: 0;}
-.pl-table-row{color: #00fdff;}
+.pl-table-row{color: #dfdfdf;}
+.pl-img-YouTube{content: url("../img/youtube_logo.png");height:25px;width: auto;}
+.pl-img-Spotify{content: url("../img/spotify_logo.png");height:25px;width: auto;}
+.pl-table-header{text-align: center;font-size: 16px;}
+.pl-table-td{border: none !important;}
 .pl-name{text-decoration: none; color: inherit;}
-.pl-name:hover{color: red; text-decoration: none}
+.pl-name:hover{color: #00fdff; text-decoration: none}
 .pl-button{color: inherit;}
-.pl-button:hover{color: red;}
+.pl-button:hover{color: #00fdff;}
 /**************************
     HEADER COMPONENT
 **************************/

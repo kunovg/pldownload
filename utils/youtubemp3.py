@@ -3,8 +3,41 @@ import sys
 import json
 import requests
 import re
+import utils.utils as U
 from queue import Queue
 from threading import Thread
+
+def Download(link, playlist_path, mp3name):
+    mp3name = U.remove_special_characters(mp3name)
+    try:
+        completesongname = '/'.join([playlist_path, mp3name])
+        b = 0
+        while b < 10000:
+            r = requests.get(link, stream=True)
+            if r.status_code == 404:
+                print('{} error 404'.format(link))
+                return False
+            with open(completesongname, "wb") as code:
+                for chunk in r.iter_content(1024):
+                    if not chunk:
+                        break
+                    code.write(chunk)
+            b = os.path.getsize(completesongname)
+        return True
+    except:
+        return False
+
+def writePlaylistFile(playlist_queue, playlist_path, playlist_name, user_id, playlist_id, finished_download_callback):
+    songs_id = []
+    with open('{}/{}.m3u'.format(playlist_path, playlist_name), "w+", encoding="utf-8") as playlist_file:
+        while not playlist_queue.empty():
+            obj = playlist_queue.get()
+            if obj:
+                playlist_file.write('{}\n'.format(obj['name']))
+                songs_id.append(obj['id'])
+            playlist_queue.task_done()
+    # Actualizar cuales canciones adicionales se han descargado
+    finished_download_callback(songs_id=songs_id)
 
 class Scrapper(Thread):
     def __init__(self, queue, idvideo, timeout=10):
@@ -45,13 +78,13 @@ class Vubey(Scrapper):
 class Mp3Cc(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):
         Scrapper.__init__(self, queue, idvideo, timeout)
-        self.s = {"1": 'gpkio', "2": 'hpbnj', "3": 'macsn', "4": 'hcqwb', "5": 'fgkzc', "6": 'hmqbu', "7": 'kyhxj', "8": 'nwwxj', "9": 'sbist', "10": 'ditrj', "11": 'qypbr', "12": 'trciw', "13": 'sjjec', "14": 'afyzk', "17": 'kzrzi', "18": 'rmira', "19": 'umbbo', "20": 'aigkk', "21": 'qgxhg', "22": 'twrri', "23": 'fkaph', "24": 'xqqqh', "25": 'xrmrw', "26": 'fjhlv', "27": 'ejtbn', "28": 'urynq', "29": 'tjljs', "30": 'ywjkg'}
+        self.s = {'1': "fzaqn", '2': "agobe", '3': "topsa", '4': "hcqwb", '5': "gdasz", '6': "iooab", '7': "idvmg", '8': "bjtpp", '9': "sbist", '10': "gxgkr", '11': "njmvd", '12': "trciw", '13': "sjjec", '14': "puust", '15': "ocnuq", '16': "qxqnh", '17': "jureo", '18': "obdzo", '19': "wavgy", '20': "qlmqh", '21': "avatv", '22': "upajk", '23': "tvqmt", '24': "xqqqh", '25': "xrmrw", '26': "fjhlv", '27': "ejtbn", '28': "urynq", '29': "tjljs", '30': "ywjkg"}
 
     def run(self):
         try:
             self.get_link()
-        except:
-            print("Mp3.CC error:", sys.exc_info()[0])
+        except Exception as inst:
+            print("Mp3.CC error:", sys.exc_info()[0], inst.args)
 
     def get_link(self):
         url = "https://d.yt-downloader.org/check.php"
@@ -81,7 +114,7 @@ class Mp3Cc(Scrapper):
             url = 'http://' + self.s[sid] + '.yt-downloader.org/download.php?id=' + hash_string
             self.queue.put(url)
         else:
-            raise Exception('An error ocurred in their server')
+            raise Exception(json_obj)
 
 class Mp3Org(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):
@@ -146,19 +179,18 @@ class LinkGeneratorWorker(Thread):
 
     def run(self):
         while True:
-            # Get the work from the queue and expand the tuple
-            filepath, mp3name, idvideo, c, t, playlist_queue = self.idsqueue.get()
+            obj = self.idsqueue.get()
             tempqueue = Queue()
-            threads = [Mp3Cc(tempqueue, idvideo, self.maxtime), Mp3Org(tempqueue, idvideo, self.maxtime)]
+            threads = [Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime), Mp3Org(tempqueue, obj['youtube_id'], self.maxtime)]
             for th in threads:
                 th.daemon = True
                 th.start()
             try:
                 link = tempqueue.get(True, self.maxtime)
-                self.linksqueue.put((filepath, mp3name, link, c, t, playlist_queue))
+                self.linksqueue.put({**obj, **{'link': link}})
             except:
-                playlist_queue.put(True)
-                print('Ningun metodo pudo obtener el link en menos de {} segundos {}'.format(self.maxtime, playlist_queue.qsize()))
+                obj['playlist_queue'].put(False)
+                print('Ningun metodo pudo obtener el link en menos de {} segundos'.format(self.maxtime))
             self.idsqueue.task_done()
 
 class LinkDownloaderWorker(Thread):
@@ -168,30 +200,30 @@ class LinkDownloaderWorker(Thread):
 
     def run(self):
         while True:
-            # Get the work from the queue and expand the tuple
-            filepath, mp3name, link, c, t, playlist_queue = self.linksqueue.get()
-            try:
-                completesongname = os.path.join(filepath, '{}.mp3'.format(mp3name))
-                b = 0
-                while b < 10000:
-                    r = requests.get(link, stream=True)
-                    if r.status_code == 404:
-                        break
-                    with open(completesongname, "wb") as code:
-                        for chunk in r.iter_content(1024):
-                            if not chunk:
-                                break
-                            code.write(chunk)
-                    b = os.path.getsize(completesongname)
-                print('Descargada {} de {}'.format(c, t))
-            except:
-                pass
-
-            playlist_queue.put(True)
-            if playlist_queue.qsize() == t+1:
-                print('Playlist downloaded')
-                while not playlist_queue.empty():
-                    playlist_queue.get()
-                    playlist_queue.task_done()
-
+            obj = self.linksqueue.get()
+            mp3name = '{}.mp3'.format(obj['name'])
+            if Download(obj['link'], obj['playlist_path'], mp3name):
+                obj['song_download_callback'](obj['playlist_queue'].qsize(), obj['total'])
+                obj['playlist_queue'].put({
+                    'name': mp3name,
+                    'id': obj['id']
+                })
+            else:
+                obj['playlist_queue'].put(False)
+            if obj['playlist_queue'].qsize() == obj['total']:
+                # Cuando ya se han trabajado todos los items de la playlist
+                writePlaylistFile(
+                    playlist_queue=obj['playlist_queue'],
+                    playlist_path=obj['playlist_path'],
+                    playlist_name=obj['playlist_name'],
+                    user_id=obj['user_id'],
+                    playlist_id=obj['playlist_id'],
+                    finished_download_callback=obj['finished_download_callback'])
+                # Create ZIP
+                U.create_zip(
+                    file_name=obj['playlist_path'],
+                    folder_path=obj['playlist_path'])
+                # Borrar la carpeta
+                U.delete_folder(obj['playlist_path'])
+                print('Playlist {} descargada'.format(obj['playlist_name']))
             self.linksqueue.task_done()

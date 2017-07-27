@@ -59,14 +59,11 @@ def get_playlists(user_id):
             'last_type': str(obj.last_type),
             'source': obj.playlist.source,
             'total': len(obj.playlist.songs),
-            'missing': len(obj.playlist.songs) - len(
-                m.s.query(m.Downloaded.song_id)
-                .filter(
-                    and_(
-                        m.Downloaded.user_id == user_id,
-                        m.Downloaded.song_id.in_([s.song_id for s in obj.playlist.songs])))
-                .all()
-            )
+            'missing': len(obj.playlist.songs) - m.s.query(
+                m.Downloaded.song_id).filter(and_(
+                    m.Downloaded.user_id == user_id,
+                    m.Downloaded.playlist_id == obj.playlist.id
+                )).count()
         } for obj in r]}
 
 def get_basic_info(user_id):

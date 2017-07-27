@@ -6,15 +6,17 @@ from datetime import datetime
 def create_playlist(user_id, playlist={}, songs=[{}]):
     """ Funcion para agregar una playlist """
     playlists = m.s.query(m.Playlist).filter(m.Playlist.url == playlist['url']).first()
+
     # Si la playlists no esta en la DB, se añaden las canciones y luego al usuario
     if playlists is None:
         p = m.Playlist(**playlist)
         for song in songs:
+            if '/channel/' in song['youtube_id'] or '/user/' in song['youtube_id']:
+                continue
             s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
             s = s if s else m.Song(**song)
             p.songs.append(m.PlaylistSongAssignation(song=s))
         m.s.add(p)
-
     playlist_urls = [obj.playlist.url for obj in m.s.query(m.UserPlaylistAssignation)
                         .filter(m.UserPlaylistAssignation.user_id == user_id).all()]
     # Si ya estaba en la base de datos pero el usuario no la tenía registrada
@@ -39,8 +41,6 @@ def create_playlist(user_id, playlist={}, songs=[{}]):
 
 def unlink_playlist(user_id, playlist_id):
     """ Funcion para quitar una playlist al usuario, las playlists nunca se eliminan """
-    # p = m.s.query(m.Playlist).filter(m.Playlist.id == playlist_id).first()
-    # user = m.s.query(m.User).filter(m.User.id == user_id).first()
     res = bool(m.s.query(m.UserPlaylistAssignation).filter(and_(
         m.UserPlaylistAssignation.user_id == user_id,
         m.UserPlaylistAssignation.playlist_id == playlist_id)).delete())
@@ -69,6 +69,7 @@ def merge_playlists(songs_id, user_id):
     return True
 
 def add_downloaded(user_id, playlist_id, songs_id=[]):
+    """ Registra una cancion como descargada """
     downloaded = m.s.query(m.Downloaded.song_id).filter_by(user_id=user_id, playlist_id=playlist_id).all()
     not_downloaded = set(songs_id) - set([d[0] for d in downloaded])
     for _id in not_downloaded:
@@ -76,7 +77,7 @@ def add_downloaded(user_id, playlist_id, songs_id=[]):
     m.s.commit()
 
 def get_songs(playlistids=[]):
-    """ Devuelve una lista de listas con las canciones para los ids """
+    """ Devuelve una lista de listas con las canciones para los ids de playlists"""
     res = []
     for _id in playlistids:
         p = m.s.query(m.Playlist).filter(m.Playlist.id == _id).first()
@@ -84,7 +85,7 @@ def get_songs(playlistids=[]):
     return res
 
 def get_playlist_information(playlist_id, user_id):
-    """ Devuelve toda la informacion de una playlist """
+    """ Devuelve canciones e informacion basica de una playlist """
     playlist = m.s.query(m.Playlist).filter(m.Playlist.id == playlist_id).first()
     uuid = m.s.query(m.UserPlaylistAssignation).filter(
         and_(m.UserPlaylistAssignation.user_id == user_id, m.UserPlaylistAssignation.playlist_id == playlist_id)).first().uuid

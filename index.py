@@ -7,9 +7,9 @@ import utils.youtubemp3 as YTMP3
 import sql.user as USER
 import sql.playlist as PLAYLIST
 from queue import Queue
-from flask import Flask, request, send_file, render_template
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from flask import Flask, request, send_file, render_template
 
 app = Flask(__name__)
 CORS(app)

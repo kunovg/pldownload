@@ -1,4 +1,3 @@
-import re
 import os
 import uuid
 import glob
@@ -15,11 +14,6 @@ def remove_special_characters(s):
 def get_playlist_source(url):
     # Hacer bien esta funcion
     return 'Spotify' if 'spot' in url else 'YouTube'
-
-def get_sp_playlist_data(url):
-    user = re.search(r'(?<=user\/|user:)(.*)(?=\/playlist|:playlist)', url).group(0)
-    idplaylist = re.search(r'(?<=playlist\/|playlist:)(.*)', url).group(0)
-    return {'user': user, 'idplaylist': idplaylist}
 
 def gen_uuid():
     return str(uuid.uuid4())

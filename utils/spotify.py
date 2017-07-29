@@ -1,9 +1,15 @@
+import re
 import time
 import json
 import urllib
 import requests
 from lxml import etree
 from io import StringIO
+
+def get_sp_playlist_data(url):
+    user = re.search(r'(?<=user\/|user:)(.*)(?=\/playlist|:playlist)', url).group(0)
+    idplaylist = re.search(r'(?<=playlist\/|playlist:)(.*)', url).group(0)
+    return user, idplaylist
 
 class SpotifyManager():
     def __init__(self, client_token):
@@ -53,7 +59,6 @@ class SpotifyManager():
         }
         offset = 0
         jsonresponse = {'items': [None] * 100}
-        tracks = []
         while len(jsonresponse['items']) == 100:
             params = {'offset': offset}
             r = requests.get(url, headers=headers, params=params)
@@ -65,11 +70,10 @@ class SpotifyManager():
                 yield song
 
             offset = offset+100
-        return tracks
 
-    def scrap_spotify_playlist_anon(self, spotify_user, listaid):
-        for cancion in self.get_sp_tracknames(user=spotify_user, listaid=listaid):
-            query_s = urllib.parse.urlencode({'search_query': '{} lyrics'.format(cancion)})
+    def scrap_spotify_playlist(self, spotify_user, listaid):
+        for trackname in self.get_sp_tracknames(user=spotify_user, listaid=listaid):
+            query_s = urllib.parse.urlencode({'search_query': '{} lyrics'.format(trackname)})
             url = "https://www.youtube.com/results?" + query_s
             r = requests.get(url)
             parser = etree.HTMLParser()
@@ -77,4 +81,4 @@ class SpotifyManager():
             lista_videos = tree.xpath('//div[contains(@class, "yt-lockup-thumbnail")]//a[contains(@class, "yt-uix-sessionlink")]')
             video_url = lista_videos[0].xpath("@href")[0]
             id_video = video_url.split("=")[-1]
-            yield (id_video, cancion)
+            yield {'youtube_id': id_video, 'name': trackname}

@@ -31,10 +31,18 @@ def insert_user():
 @app.route('/insert/playlist', methods=['POST'])
 def insert_playlist():
     r = request.json
-    songs = list(UTILS.scrap_youtube_playlist(r['url']))
+    url = r.get('url')
+    source = UTILS.get_playlist_source(url)
+    if source == 'Youtube':
+        songs = list(YTMP3.scrap_youtube_playlist(url))
+        name = YTMP3.get_yt_playlist_title(url)
+    elif source == 'Spotify':
+        user, idplaylist = SPOT.get_sp_playlist_data(url)
+        songs = SPOT.scrap_spotify_playlist(user, idplaylist)
+        name = SPOTIFY.get_sp_tracklist_name(url)
     res = PLAYLIST.create_playlist(
         user_id=request.headers.get('User'),
-        playlist=UTILS.youtube_playlist_data(r['url']),
+        playlist=dict(source=source, url=url, name=name),
         songs=songs)
     return json.dumps(res)
 

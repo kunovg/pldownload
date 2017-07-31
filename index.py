@@ -21,14 +21,14 @@ config = json.load(open("config.json", "r"))
 def index():
     return render_template('index.html')
 
-@app.route('/insert/user', methods=['POST'])
+@app.route('/user/create', methods=['POST'])
 def insert_user():
     user = request.json
     user['password'] = PWS.hash(user['password'])
     USER.create_user(user=user)
     return json.dumps(True)
 
-@app.route('/insert/playlist', methods=['POST'])
+@app.route('/playlist/create', methods=['POST'])
 def insert_playlist():
     r = request.json
     url = r.get('url')
@@ -43,6 +43,22 @@ def insert_playlist():
     res = PLAYLIST.create_playlist(
         user_id=request.headers.get('User'),
         playlist=dict(source=source, url=url, name=name),
+        songs=songs)
+    return json.dumps(res)
+
+@app.route('/playlist/update', methods=['POST'])
+def update_playlist():
+    r = request.json
+    source, url = r.get('source'), r.get('url')
+    playlist_id, user_id = r.get('id'), request.headers.get('User')
+    if source == 'Youtube':
+        songs = list(YTMP3.scrap_youtube_playlist(url))
+    elif source == 'Spotify':
+        user, idplaylist = SPOT.get_sp_playlist_data(url)
+        songs = SPOT.scrap_spotify_playlist(user, idplaylist)
+    res = PLAYLIST.update_playlist(
+        playlist_id,
+        user_id=user_id,
         songs=songs)
     return json.dumps(res)
 

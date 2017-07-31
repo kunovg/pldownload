@@ -51,7 +51,7 @@ export default class PldAuthService extends EventEmitter{
   registerUser(data){
     return axios({
       method: 'post',
-      url: 'http://localhost:5000/insert/user',
+      url: 'http://localhost:5000/user/create',
       data: data,
       headers: {User: `${this.getUserId()}`}
     });
@@ -59,7 +59,7 @@ export default class PldAuthService extends EventEmitter{
   registerPlaylist(data){
     return axios({
       method: 'post',
-      url: 'http://localhost:5000/insert/playlist',
+      url: 'http://localhost:5000/playlist/create',
       data: data,
       headers: {User: `${this.getUserId()}`}
     });

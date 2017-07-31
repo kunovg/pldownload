@@ -47,15 +47,27 @@ def unlink_playlist(user_id, playlist_id):
     m.s.commit()
     return res
 
-def update_playlist(playlist_id, songs=[{}]):
+def update_playlist(playlist_id, user_id=None, songs=[{}]):
     """ Funcion para añadir nuevas canciones a una playlist ya existente """
     p = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
-    old_songs = [song for song in p.songs]
-    for s in old_songs:
+    olds = [song for song in p.songs]
+    # Es mas eficiente tirar y reconstruir
+    # que buscar las que ya no existen y las nuevas
+    for s in olds:
         p.songs.remove(s)
     for song in songs:
-        p.songs.append(m.PlaylistSongAssignation(song=m.Song(**song)))
+        s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
+        s = s if s else m.Song(**song)
+        p.songs.append(m.PlaylistSongAssignation(song=s))
     m.s.commit()
+    return {
+        'total': len(p.songs),
+        'missing': len(p.songs) - m.s.query(
+            m.Downloaded.song_id).filter(and_(
+                m.Downloaded.user_id == user_id,
+                m.Downloaded.playlist_id == p.id
+            )).count()
+    }
 
 def update_last_date_type(playlist_id, user_id, tipo):
     """ Actualiza las columnas de ultima fecha en que se descargo y tipo """

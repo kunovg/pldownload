@@ -26,6 +26,25 @@ class Downloader extends Component {
   }
 }
 
+class Updater extends Component {
+  constructor(){super(); this.state={}}
+  updatePlaylist(){
+    let {source, id, url} = this.props
+    let config = {source: source, id: id, url: url}
+    this.props.auth.updatePlaylist(config).then(res=>{
+      console.log(res)
+    })
+  }
+  render(){
+    return (<Button
+      bsStyle="link"
+      className='pl-button'
+      onClick={this.updatePlaylist.bind(this)}>
+      <Glyphicon glyph="refresh"/>
+    </Button>)
+  }
+}
+
 class PlaylistRow extends Component {
   constructor(props){super(props)}
   handleFullDownload(){
@@ -33,6 +52,7 @@ class PlaylistRow extends Component {
   }
   render(){
     return(<tr className='pl-table-row'>
+        <td className='pl-table-td'><Updater {...this.props}/></td>
         <td className='pl-table-td'><OrigenFormatter value={this.props.source}/></td>
         <td className='pl-table-td'><a className='pl-name' href={this.props.url} target="_blank">{this.props.name}</a></td>
         <td className='pl-table-td'>{this.props.total}</td>
@@ -46,27 +66,35 @@ class PlaylistRow extends Component {
 class PlaylistsTable extends Component {
   constructor(props){super(props); this.state={}}
   componentDidMount(){
-    let userId = this.props.auth.getUserId(), socket = io.connect('http://localhost:5000'), _this = this;
+    let userId = this.props.auth.getUserId(),
+      socket = io.connect('http://localhost:5000'),
+      _this = this;
+    // WebSocket Listener
     socket.on(`${userId}`, data => {
       let playlists = _this.state.playlists;
       playlists.forEach((p, i) => {
-        if(p.id == data.playlist_id) playlists[i] = Object.assign({}, p, data)
+        if(p.id == data.playlist_id){
+          playlists[i] = Object.assign({}, p, data)
+        }
       })
       _this.setState({playlists: playlists})
     });
   }
-  componentWillReceiveProps(nextProps){ this.setState({playlists: nextProps.playlists}) }
+  componentWillReceiveProps(nextProps){
+    this.setState({playlists: nextProps.playlists})
+  }
   render(){
     let rows = this.state.playlists && this.state.playlists.map((obj,i) => {return <PlaylistRow key={i} auth={this.props.auth} {...obj}/>})
     return(<Table responsive id='playliststable'>
     <thead>
       <tr>
-        <th className='pl-table-header'>Origen</th>
-        <th className='pl-table-header'>Título</th>
-        <th className='pl-table-header'>Total canciones</th>
-        <th className='pl-table-header'>Sin descargar</th>
-        <th className='pl-table-header'>Descargar todas</th>
-        <th className='pl-table-header'>Descargar nuevas</th>
+        <th className='pl-table-header'></th>
+        <th className='pl-table-header'></th>
+        <th className='pl-table-header'>Title</th>
+        <th className='pl-table-header'>Total</th>
+        <th className='pl-table-header'>Not downloaded</th>
+        <th className='pl-table-header'>Download all</th>
+        <th className='pl-table-header'>Download new</th>
       </tr>
     </thead>
     <tbody>
@@ -94,8 +122,9 @@ class UserDownloader extends Component {
   handleClick(){
     let _this = this;
     if (/youtube.com\/playlist\?list=.*|spotify.com\/user\/\d+|.+\/playlist\/.*|user:[^:]+:playlist:.*/.test(this.state.inputUrl)){
+      let config = {url: this.state.inputUrl}
       this.setState({loading: true})
-      this.props.auth.registerPlaylist({url: this.state.inputUrl, userId: this.props.auth.getUserId()}).then(res=>{
+      this.props.auth.registerPlaylist(config).then(res=>{
         _this.setState({loading:false})
         if(res.data){
           _this.setState({playlists: _this.state.playlists.concat(res.data), inputUrl: ''})

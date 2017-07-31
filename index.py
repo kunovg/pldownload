@@ -49,13 +49,14 @@ def insert_playlist():
 @app.route('/playlist/update', methods=['POST'])
 def update_playlist():
     r = request.json
-    source, url = r.get('source'), r.get('url')
+    source, url, songs = r.get('source'), r.get('url'), None
     playlist_id, user_id = r.get('id'), request.headers.get('User')
-    if source == 'Youtube':
+    if source == 'YouTube':
         songs = list(YTMP3.scrap_youtube_playlist(url))
     elif source == 'Spotify':
         user, idplaylist = SPOT.get_sp_playlist_data(url)
         songs = SPOT.scrap_spotify_playlist(user, idplaylist)
+    assert songs
     res = PLAYLIST.update_playlist(
         playlist_id,
         user_id=user_id,

@@ -35,12 +35,21 @@ export default class PldAuthService extends EventEmitter{
     localStorage.removeItem('profile');
     this.emit('reload');
   }
+  /**
+  * All of a user playlists
+  * @return {Array} list of objects with playlists information
+  */
   getPlaylists(){
     return axios({
       method: 'get',
       url: `http://localhost:5000/playlists?userId=${this.getUserId()}`,
     });
   }
+  /**
+  * Checks if email or username is available
+  * @param {Object} data - {attr: value} 
+  * @return {Boolean} Available or not
+  */
   validate(data){
     return axios({
       method: 'post',
@@ -48,6 +57,11 @@ export default class PldAuthService extends EventEmitter{
       data: data,
     });
   }
+  /**
+  * Register new user
+  * @param {Object} data - {name, email, password} 
+  * @return {Boolean} Always True, or 500 status
+  */
   registerUser(data){
     return axios({
       method: 'post',
@@ -56,6 +70,24 @@ export default class PldAuthService extends EventEmitter{
       headers: {User: `${this.getUserId()}`}
     });
   }
+  /**
+  * Update songs in a Playlist
+  * @param {Object} data - {source, id, url} 
+  * @return {Object} {total, missing}
+  */
+  updatePlaylist(data){
+    return axios({
+      method: 'post',
+      url: 'http://localhost:5000/playlist/update',
+      data: data,
+      headers: {User: `${this.getUserId()}`}
+    });
+  }
+  /**
+  * Read a new playlist
+  * @param {Object} data - {url} 
+  * @return {Object} {id, url, name, source, total, missing}
+  */
   registerPlaylist(data){
     return axios({
       method: 'post',
@@ -64,6 +96,11 @@ export default class PldAuthService extends EventEmitter{
       headers: {User: `${this.getUserId()}`}
     });
   }
+  /**
+  * Request to start a full download of playlist
+  * @param {Integer} playlistId 
+  * @return {Object} {success}
+  */
   downloadFull(playlistId){
     return axios({
       method: 'post',

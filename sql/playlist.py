@@ -50,11 +50,10 @@ def unlink_playlist(user_id, playlist_id):
 def update_playlist(playlist_id, user_id=None, songs=[{}]):
     """ Funcion para añadir nuevas canciones a una playlist ya existente """
     p = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
-    olds = [song for song in p.songs]
     # Es mas eficiente tirar y reconstruir
     # que buscar las que ya no existen y las nuevas
-    for s in olds:
-        p.songs.remove(s)
+    for old in p.songs:
+        p.songs.remove(old)
     for song in songs:
         s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
         s = s if s else m.Song(**song)

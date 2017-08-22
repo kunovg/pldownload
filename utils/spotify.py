@@ -11,7 +11,7 @@ def get_sp_playlist_data(url):
     idplaylist = re.search(r'(?<=playlist\/|playlist:)(.*)', url).group(0)
     return user, idplaylist
 
-class SpotifyManager():
+class Spotify():
     def __init__(self, client_token):
         self.client_token = client_token
         self.token = None
@@ -52,7 +52,7 @@ class SpotifyManager():
 
     def get_sp_tracknames(self, user, listaid):
         self.token_validation()
-        url = "https://api.spotify.com/v1/users/"+user+"/playlists/"+listaid+"/tracks"
+        url = "https://api.spotify.com/v1/users/{}/playlists/{}/tracks".format(user, listaid)
         headers = {
             'Accept': 'application/json',
             'Authorization': 'Bearer ' + self.token
@@ -69,11 +69,11 @@ class SpotifyManager():
                 song = artista + " - " + titulo
                 yield song
 
-            offset = offset+100
+            offset = offset + 100
 
     def scrap_spotify_playlist(self, spotify_user, listaid):
         for trackname in self.get_sp_tracknames(user=spotify_user, listaid=listaid):
-            query_s = urllib.parse.urlencode({'search_query': '{} lyrics'.format(trackname)})
+            query_s = urllib.parse.urlencode({'search_query': '%s lyrics' % trackname})
             url = "https://www.youtube.com/results?" + query_s
             r = requests.get(url)
             parser = etree.HTMLParser()
@@ -82,3 +82,9 @@ class SpotifyManager():
             video_url = lista_videos[0].xpath("@href")[0]
             id_video = video_url.split("=")[-1]
             yield {'youtube_id': id_video, 'name': trackname}
+
+    @staticmethod
+    def get_user_and_id(url):
+        user = re.search(r'(?<=user\/|user:)(.*)(?=\/playlist|:playlist)', url).group(0)
+        idplaylist = re.search(r'(?<=playlist\/|playlist:)(.*)', url).group(0)
+        return user, idplaylist

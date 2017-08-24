@@ -116,7 +116,7 @@ class UserDownloader extends Component {
   componentDidMount(){
     let _this = this;
     this.props.auth.getPlaylists().then(res =>{
-      _this.setState({playlists: res.data.playlists})
+      _this.setState({playlists: res.data})
     })
   }
   handleClick(){

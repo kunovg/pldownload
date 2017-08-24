@@ -4,78 +4,8 @@ import sys
 import json
 import requests
 import utils.utils as U
-from io import StringIO
 from queue import Queue
-from lxml import etree
-from lxml.html import parse
-from urllib.request import urlopen
 from threading import Thread
-
-def count_youtube_playlist(url):
-    return len(list(scrap_youtube_playlist(url)))
-
-def video_id(string):
-    return string[9:20] if "watch" in string else string
-
-def get_yt_playlist_title(url):
-    page = urlopen(url)
-    p = parse(page)
-    playlist_title = p.find("//meta[@name='title']").attrib['content']
-    return playlist_title[:-10]  # Quitar la parte de " - YouTube"
-
-def scrap_youtube_playlist(url):
-    mostrar_mas = None
-    r = requests.get(url)
-    parser = etree.HTMLParser()
-    if "browse_ajax" in r.url:
-        rd = json.loads(r.text)
-        tree = etree.parse(StringIO(rd['content_html']), parser)
-        mostrar_mas = etree.parse(StringIO(rd['load_more_widget_html']), parser).xpath('//@data-uix-load-more-href')[0] if rd.get('load_more_widget_html') else None
-        lista_videos = tree.xpath('//a[contains(@class, "pl-video")]')
-
-    else:
-        tree = etree.parse(StringIO(r.text), parser)
-        mostrar_mas = tree.xpath('//button//@data-uix-load-more-href')[0] if tree.xpath('//button//@data-uix-load-more-href') else None
-        lista_videos = tree.xpath('//a[contains(@class, "pl-video-title-link")]')
-
-    for vid in lista_videos:
-        yield {'youtube_id': video_id(vid.attrib['href']), 'name': str(vid.text.strip())}
-
-    if mostrar_mas:
-        url_mostrarmas = 'https://www.youtube.com'+mostrar_mas
-        yield from scrap_youtube_playlist(url_mostrarmas)
-
-def Download(link, playlist_path, mp3name):
-    mp3name = U.remove_special_characters(mp3name)
-    try:
-        completesongname = '/'.join([playlist_path, mp3name])
-        b = 0
-        while b < 10000:
-            r = requests.get(link, stream=True)
-            if r.status_code == 404:
-                print('{} error 404'.format(link))
-                return False
-            with open(completesongname, "wb") as code:
-                for chunk in r.iter_content(1024):
-                    if not chunk:
-                        break
-                    code.write(chunk)
-            b = os.path.getsize(completesongname)
-        return True
-    except:
-        return False
-
-def writePlaylistFile(playlist_queue, playlist_path, playlist_name, user_id, playlist_id, finished_download_callback):
-    songs_id = []
-    with open('{}/{}.m3u'.format(playlist_path, playlist_name), "w+", encoding="utf-8") as playlist_file:
-        while not playlist_queue.empty():
-            obj = playlist_queue.get()
-            if obj:
-                playlist_file.write('{}\n'.format(obj['name']))
-                songs_id.append(obj['id'])
-            playlist_queue.task_done()
-    # Actualizar cuales canciones adicionales se han descargado
-    finished_download_callback(songs_id=songs_id)
 
 class Scrapper(Thread):
     def __init__(self, queue, idvideo, timeout=10):
@@ -219,7 +149,11 @@ class LinkGeneratorWorker(Thread):
         while True:
             obj = self.idsqueue.get()
             tempqueue = Queue()
-            threads = [Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime), Mp3Org(tempqueue, obj['youtube_id'], self.maxtime)]
+            threads = [
+                Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
+                Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
+                Vubey(tempqueue, obj['youtube_id'], self.maxtime)
+            ]
             for th in threads:
                 th.daemon = True
                 th.start()
@@ -236,11 +170,43 @@ class LinkDownloaderWorker(Thread):
         Thread.__init__(self)
         self.linksqueue = linksqueue
 
+    def writePlaylistFile(self, playlist_queue, playlist_path, playlist_name, user_id, playlist_id, finished_download_callback):
+        songs_id = []
+        with open('{}/{}.m3u'.format(playlist_path, playlist_name), "w+", encoding="utf-8") as playlist_file:
+            while not playlist_queue.empty():
+                obj = playlist_queue.get()
+                if obj:
+                    playlist_file.write('{}\n'.format(obj['name']))
+                    songs_id.append(obj['id'])
+                playlist_queue.task_done()
+        # Actualizar cuales canciones adicionales se han descargado y avisar al usuario que termino la descarga
+        finished_download_callback(songs_id=songs_id)
+
+    def Download(self, link, playlist_path, mp3name):
+        mp3name = U.remove_special_characters(mp3name)
+        try:
+            completesongname = '/'.join([playlist_path, mp3name])
+            b = 0
+            while b < 10000:
+                r = requests.get(link, stream=True)
+                if r.status_code == 404:
+                    print('{} error 404'.format(link))
+                    return False
+                with open(completesongname, "wb") as code:
+                    for chunk in r.iter_content(1024):
+                        if not chunk:
+                            break
+                        code.write(chunk)
+                b = os.path.getsize(completesongname)
+            return True
+        except:
+            return False
+
     def run(self):
         while True:
             obj = self.linksqueue.get()
             mp3name = '{}.mp3'.format(obj['name'])
-            if Download(obj['link'], obj['playlist_path'], mp3name):
+            if self.Download(obj['link'], obj['playlist_path'], mp3name):
                 obj['song_download_callback'](obj['playlist_queue'].qsize(), obj['total'])
                 obj['playlist_queue'].put({
                     'name': mp3name,
@@ -250,7 +216,7 @@ class LinkDownloaderWorker(Thread):
                 obj['playlist_queue'].put(False)
             if obj['playlist_queue'].qsize() == obj['total']:
                 # Cuando ya se han trabajado todos los items de la playlist
-                writePlaylistFile(
+                self.writePlaylistFile(
                     playlist_queue=obj['playlist_queue'],
                     playlist_path=obj['playlist_path'],
                     playlist_name=obj['playlist_name'],

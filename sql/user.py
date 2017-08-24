@@ -49,22 +49,24 @@ def valid_password(password, name):
     return False
 
 def get_playlists(user_id):
-    r = m.s.query(m.UserPlaylistAssignation).filter_by(user_id=user_id).all()
-    return {
-        'playlists': [{
-            'id': obj.playlist.id,
-            'url': obj.playlist.url,
-            'name': obj.playlist.name,
-            'last_date': str(obj.last_date),
-            'last_type': str(obj.last_type),
-            'source': obj.playlist.source,
-            'total': len(obj.playlist.songs),
-            'missing': len(obj.playlist.songs) - m.s.query(
-                m.Downloaded.song_id).filter(and_(
-                    m.Downloaded.user_id == user_id,
-                    m.Downloaded.playlist_id == obj.playlist.id
-                )).count()
-        } for obj in r]}
+    """
+    Informacion basica de las playlists de un usuario.
+
+    Falta incluir last_date y last_type
+    """
+    playlists = m.s.query(m.User).filter_by(id=user_id).first().playlists
+    return [{
+        'id': p.id,
+        'url': p.url,
+        'name': p.name,
+        'source': p.source,
+        'total': len(p.songs),
+        'missing': len(p.songs) - m.s.query(
+            m.Downloaded.song_id).filter(and_(
+                m.Downloaded.user_id == user_id,
+                m.Downloaded.playlist_id == p.id
+            )).count()
+    } for p in playlists]
 
 def get_basic_info(user_id):
     user = m.s.query(m.User).filter_by(id=user_id).first()

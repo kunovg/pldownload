@@ -5,28 +5,21 @@ from datetime import datetime
 
 def create_playlist(user_id, playlist={}, songs=[{}]):
     """ Funcion para agregar una playlist """
-    playlists = m.s.query(m.Playlist).filter(m.Playlist.url == playlist['url']).first()
+    p = m.s.query(m.Playlist).filter(m.Playlist.url == playlist['url']).first()
 
     # Si la playlists no esta en la DB, se añaden las canciones y luego al usuario
-    if playlists is None:
+    if p is None:
         p = m.Playlist(**playlist)
         for song in songs:
             if '/channel/' in song['youtube_id'] or '/user/' in song['youtube_id']:
                 continue
             s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
             s = s if s else m.Song(**song)
-            p.songs.append(m.PlaylistSongAssignation(song=s))
+            p.songs.append(s)
         m.s.add(p)
-    playlist_urls = [obj.playlist.url for obj in m.s.query(m.UserPlaylistAssignation)
-                        .filter(m.UserPlaylistAssignation.user_id == user_id).all()]
-    # Si ya estaba en la base de datos pero el usuario no la tenía registrada
-    if playlist['url'] not in playlist_urls:
-        p = m.s.query(m.Playlist).filter_by(url=playlist['url']).first()
-    else:
-        return False
 
     user = m.s.query(m.User).filter_by(id=user_id).first()
-    user.playlists.append(m.UserPlaylistAssignation(playlist=p))
+    user.playlists.append(p)
     m.s.commit()
     m.s.flush()
     m.s.refresh(p)
@@ -41,11 +34,10 @@ def create_playlist(user_id, playlist={}, songs=[{}]):
 
 def unlink_playlist(user_id, playlist_id):
     """ Funcion para quitar una playlist al usuario, las playlists nunca se eliminan """
-    res = bool(m.s.query(m.UserPlaylistAssignation).filter(and_(
-        m.UserPlaylistAssignation.user_id == user_id,
-        m.UserPlaylistAssignation.playlist_id == playlist_id)).delete())
-    m.s.commit()
-    return res
+    user = m.s.query(m.User).filter_by(id=user_id).first()
+    playlist = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
+    user.playlists.remove(playlist)
+    return True
 
 def update_playlist(playlist_id, user_id=None, songs=[{}]):
     """ Funcion para añadir nuevas canciones a una playlist ya existente """
@@ -57,7 +49,7 @@ def update_playlist(playlist_id, user_id=None, songs=[{}]):
     for song in songs:
         s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
         s = s if s else m.Song(**song)
-        p.songs.append(m.PlaylistSongAssignation(song=s))
+        p.songs.append(s)
     m.s.commit()
     return {
         'total': len(p.songs),
@@ -80,7 +72,7 @@ def merge_playlists(songs_id, user_id):
     return True
 
 def add_downloaded(user_id, playlist_id, songs_id=[]):
-    """ Registra una cancion como descargada """
+    """ Registra una lista de canciones como descargadas """
     downloaded = m.s.query(m.Downloaded.song_id).filter_by(user_id=user_id, playlist_id=playlist_id).all()
     not_downloaded = set(songs_id) - set([d[0] for d in downloaded])
     for _id in not_downloaded:
@@ -97,7 +89,7 @@ def get_songs(playlistids=[]):
 
 def get_playlist_information(playlist_id, user_id):
     """ Devuelve canciones e informacion basica de una playlist """
-    playlist = m.s.query(m.Playlist).filter(m.Playlist.id == playlist_id).first()
+    playlist = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
     uuid = m.s.query(m.UserPlaylistAssignation).filter(
         and_(m.UserPlaylistAssignation.user_id == user_id, m.UserPlaylistAssignation.playlist_id == playlist_id)).first().uuid
     return {
@@ -106,9 +98,9 @@ def get_playlist_information(playlist_id, user_id):
         'url': playlist.url,
         'source': playlist.source,
         'uuid': uuid,
-        'songs': [{'id': s.song.id,
-                   'artist': s.song.artist,
-                   'name': s.song.name,
-                   'youtube_id': s.song.youtube_id}
+        'songs': [{'id': s.id,
+                   'artist': s.artist,
+                   'name': s.name,
+                   'youtube_id': s.youtube_id}
                   for s in playlist.songs],
     }

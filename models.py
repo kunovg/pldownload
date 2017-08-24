@@ -44,7 +44,8 @@ class User(BASE):
     permissions = Column(JSON)
     created = Column(Date, default=datetime.datetime.now)
     modified = Column(Date, default=datetime.datetime.now, onupdate=datetime.datetime.now)
-    playlists = relationship("UserPlaylistAssignation", cascade="all, delete-orphan")
+    playlists = relationship("Playlist", secondary='userplaylistassignation',
+                             backref='user')  # cascade="all, delete-orphan"
 
 class Playlist(BASE):
     __tablename__ = 'playlist'
@@ -52,7 +53,8 @@ class Playlist(BASE):
     name = Column(String(255))
     url = Column(String(255))
     source = Column(String(255))
-    songs = relationship("PlaylistSongAssignation", cascade="all, delete-orphan")
+    songs = relationship("Song", secondary='playlistsongassignation',
+                         backref='playlist')  # cascade="all, delete-orphan"
 
 class Song(BASE):
     __tablename__ = 'song'
@@ -87,7 +89,6 @@ class UserPlaylistAssignation(BASE):
     user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
     playlist_id = Column(Integer, ForeignKey('playlist.id'), primary_key=True)
     uuid = Column(String(36), default=U.gen_uuid)
-    playlist = relationship("Playlist")
     last_date = Column(Date)
     last_type = Column(String)
 
@@ -97,4 +98,3 @@ class PlaylistSongAssignation(BASE):
     __tablename__ = 'playlistsongassignation'
     playlist_id = Column(Integer, ForeignKey('playlist.id'), primary_key=True)
     song_id = Column(Integer, ForeignKey('song.id'), primary_key=True)
-    song = relationship("Song")

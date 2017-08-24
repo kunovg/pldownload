@@ -6,11 +6,6 @@ import requests
 from lxml import etree
 from io import StringIO
 
-def get_sp_playlist_data(url):
-    user = re.search(r'(?<=user\/|user:)(.*)(?=\/playlist|:playlist)', url).group(0)
-    idplaylist = re.search(r'(?<=playlist\/|playlist:)(.*)', url).group(0)
-    return user, idplaylist
-
 class Spotify():
     def __init__(self, client_token):
         self.client_token = client_token

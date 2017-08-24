@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import eventlet
 import json
+from platforms.spotify import Spotify
+from platforms.youtube import Youtube
 import utils.utils as UTILS
-import utils.spotify as SPOT
 import utils.pwsecurity as PWS
-import utils.youtubemp3 as YTMP3
+import utils.downloaders as Downloaders
 import sql.user as USER
 import sql.playlist as PLAYLIST
 from queue import Queue
@@ -11,6 +13,7 @@ from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask import Flask, request, send_file, render_template
 
+eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
 CORS(app)
 socket = SocketIO(app)
@@ -33,12 +36,12 @@ def insert_playlist():
     r = request.json
     url = r.get('url')
     source = UTILS.get_playlist_source(url)
-    if source == 'Youtube':
-        songs = list(YTMP3.scrap_youtube_playlist(url))
-        name = YTMP3.get_yt_playlist_title(url)
+    if source == 'YouTube':
+        songs = list(Youtube.scrap_youtube_playlist(url))
+        name = Youtube.get_yt_playlist_title(url)
     elif source == 'Spotify':
-        user, idplaylist = SPOT.get_sp_playlist_data(url)
-        songs = SPOT.scrap_spotify_playlist(user, idplaylist)
+        user, idplaylist = Spotify.get_user_and_id(url)
+        songs = SPOTIFY.scrap_spotify_playlist(user, idplaylist)
         name = SPOTIFY.get_sp_tracklist_name(url)
     res = PLAYLIST.create_playlist(
         user_id=request.headers.get('User'),
@@ -52,16 +55,22 @@ def update_playlist():
     source, url, songs = r.get('source'), r.get('url'), None
     playlist_id, user_id = r.get('id'), request.headers.get('User')
     if source == 'YouTube':
-        songs = list(YTMP3.scrap_youtube_playlist(url))
+        songs = list(Youtube.scrap_youtube_playlist(url))
     elif source == 'Spotify':
-        user, idplaylist = SPOT.get_sp_playlist_data(url)
-        songs = SPOT.scrap_spotify_playlist(user, idplaylist)
+        user, idplaylist = Spotify.get_user_and_id(url)
+        songs = SPOTIFY.scrap_spotify_playlist(user, idplaylist)
     assert songs
     res = PLAYLIST.update_playlist(
         playlist_id,
         user_id=user_id,
         songs=songs)
     return json.dumps(res)
+
+@app.route('/playlist/unlink', methods=['POST'])
+def unlink_playlist():
+    r = request.json
+    playlist_id, user_id = r.get('id'), request.headers.get('User')
+    return json.dumps(PLAYLIST.unlink_playlist(user_id, playlist_id))
 
 @app.route('/validate', methods=['POST'])
 def validate():
@@ -87,7 +96,9 @@ def fulldownload():
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
         PLAYLIST.update_last_date_type(playlist_id, user_id, tipo)
         PLAYLIST.add_downloaded(user_id, playlist_id, songs_id=songs_id)
+        print('emit1')
         socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid, status='finished'), broadcast=True)
+        print('emit2')
 
     playlist_id = request.json['playlistId']
     user_id = request.headers.get('User')
@@ -159,15 +170,15 @@ def get_file():
 
 if __name__ == "__main__":
     DIRECTORY = config['file_directory']
-    SPOTIFY = SPOT.SpotifyManager(config['spotify_token'])
+    SPOTIFY = Spotify(config['spotify_token'])
     SPOTIFY.get_sp_token()
     linksqueue, idsqueue = Queue(), Queue()
     for x in range(config['scrapper_workers']):
-        scrapper = YTMP3.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'])
+        scrapper = Downloaders.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'])
         scrapper.daemon = True
         scrapper.start()
     for x in range(config['downloader_workers']):
-        scrapper = YTMP3.LinkDownloaderWorker(linksqueue)
+        scrapper = Downloaders.LinkDownloaderWorker(linksqueue)
         scrapper.daemon = True
         scrapper.start()
     # app.run(host='0.0.0.0', debug=True, threaded=True)

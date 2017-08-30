@@ -26,6 +26,7 @@ a{text-decoration: underline white;}
 .pl-name:hover{color: #00fdff; text-decoration: none}
 .pl-button{color: inherit;}
 .pl-button:hover{color: #00fdff;}
+.delete-btn:hover{color: red;}
 /**************************
     HEADER COMPONENT
 **************************/

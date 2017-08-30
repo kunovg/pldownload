@@ -37,6 +37,7 @@ def unlink_playlist(user_id, playlist_id):
     user = m.s.query(m.User).filter_by(id=user_id).first()
     playlist = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
     user.playlists.remove(playlist)
+    m.s.commit()
     return True
 
 def update_playlist(playlist_id, user_id=None, songs=[{}]):

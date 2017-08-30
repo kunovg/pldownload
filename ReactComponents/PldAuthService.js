@@ -84,6 +84,19 @@ export default class PldAuthService extends EventEmitter{
     });
   }
   /**
+  * Unlink a playlist from a user
+  * @param {Integer} playlistId 
+  * @return {Object} {bool}
+  */
+  unlinkPlaylist(playlistId){
+    return axios({
+      method: 'post',
+      url: 'http://localhost:5000/playlist/unlink',
+      data: {id: playlistId},
+      headers: {User: `${this.getUserId()}`}
+    });
+  }
+  /**
   * Read a new playlist
   * @param {Object} data - {url} 
   * @return {Object} {id, url, name, source, total, missing}

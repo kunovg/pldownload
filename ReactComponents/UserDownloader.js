@@ -47,8 +47,14 @@ class Updater extends Component {
 
 class PlaylistRow extends Component {
   constructor(props){super(props)}
-  handleFullDownload(){
-    this.props.auth.downloadFull(this.props.id)
+  handleFullDownload(){this.props.auth.downloadFull(this.props.id)}
+  handleRemove(){
+    this.props.auth.unlinkPlaylist(this.props.id).then(res => {
+      if(res.data){
+        console.log('eliminando')
+        this.props.removePlaylist(this.props.id)
+      }
+    })
   }
   render(){
     return(<tr className='pl-table-row'>
@@ -59,6 +65,7 @@ class PlaylistRow extends Component {
         <td className='pl-table-td'>{this.props.missing}</td>
         <td className='pl-table-td'><Downloader clickHandler={this.handleFullDownload.bind(this)} {...this.props}/></td>
         <td className='pl-table-td'><Button bsStyle="link" className='pl-button'><Glyphicon glyph="save"/></Button></td>
+        <td className='pl-table-td'><Button onClick={this.handleRemove.bind(this)} bsStyle="link" className='pl-button delete-btn'><Glyphicon glyph="remove"/></Button></td>
       </tr>)
   }
 }
@@ -83,8 +90,19 @@ class PlaylistsTable extends Component {
   componentWillReceiveProps(nextProps){
     this.setState({playlists: nextProps.playlists})
   }
+  removePlaylist(id){
+    console.log(id)
+    let playlists = this.state.playlists;
+    let newplaylists = playlists.filter(p => p.id != id)
+    this.setState({playlists: newplaylists})
+  }
   render(){
-    let rows = this.state.playlists && this.state.playlists.map((obj,i) => {return <PlaylistRow key={i} auth={this.props.auth} {...obj}/>})
+    let rows = this.state.playlists && this.state.playlists.map((obj,i) => <PlaylistRow
+        key={i}
+        auth={this.props.auth}
+        removePlaylist={this.removePlaylist.bind(this)}
+        {...obj}/>)
+    if(rows && rows.length == 0){ rows = (<tr><td colSpan="8">No playlists</td></tr>) }
     return(<Table responsive id='playliststable'>
     <thead>
       <tr>
@@ -95,6 +113,7 @@ class PlaylistsTable extends Component {
         <th className='pl-table-header'>Not downloaded</th>
         <th className='pl-table-header'>Download all</th>
         <th className='pl-table-header'>Download new</th>
+        <th className='pl-table-header'>Delete</th>
       </tr>
     </thead>
     <tbody>

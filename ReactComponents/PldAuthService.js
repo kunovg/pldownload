@@ -16,20 +16,21 @@ export default class PldAuthService extends EventEmitter{
   getName(){return localStorage.profile ? JSON.parse(localStorage.profile).name : null}
   getUserId(){return localStorage.profile ? JSON.parse(localStorage.profile).id : null}
   loggedIn(){ return localStorage.getItem('loggedIn'); }
+  /**
+  * Login
+  * @param {Object} data - {user, password} 
+  * @return {Object} User profile
+  */
   login(data){
-    let _this = this;
-    axios({
+    return axios({
       method: 'post',
       url: 'http://localhost:5000/login',
       data: data,
     })
-      .then(res => {
-        localStorage.setItem('loggedIn', true);
-        localStorage.setItem('profile', JSON.stringify(res.data));
-        _this.emit('reload')
-      })
-      .catch(err => {_this.emit('loginFail')});
   }
+  /**
+  * Logout
+  */
   logout(){
     localStorage.removeItem('loggedIn');
     localStorage.removeItem('profile');

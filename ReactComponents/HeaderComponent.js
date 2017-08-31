@@ -14,11 +14,19 @@ class LoginForm extends Component{
   }
   handleLogin(){
     this.setState({loading:true});
-    setTimeout(()=>{ this.setState({loading:false}); }, 1000);
-    this.props.auth.login(this.state);
+    this.props.auth.login(this.state).then(res=>{
+      localStorage.setItem('loggedIn', true);
+      localStorage.setItem('profile', JSON.stringify(res.data));
+      this.setState({loading:false});
+      this.props.auth.emit('reload');
+    }).catch(err=>{
+      this.setState({loading:false});
+      this.props.auth.emit('loginFail');
+    })
   }
   handleKeyDown(e){if(e.key=='Enter') this.handleLogin()}
   render(){
+    let loadingGif = this.state.loading && <div className='header-loading'></div>;
     return(
       <div id='loginForm' onBlur={this.onBlur.bind(this)}>
         <input
@@ -41,7 +49,7 @@ class LoginForm extends Component{
           onClick={this.handleLogin.bind(this)}>
           Log in
         </Button>
-        {this.state.loading ? <div className='header-loading'></div> : null}
+        {loadingGif}
       </div>
       );
   }

@@ -43,22 +43,18 @@ def unlink_playlist(user_id, playlist_id):
 def update_playlist(playlist_id, user_id=None, songs=[{}]):
     """ Funcion para añadir nuevas canciones a una playlist ya existente """
     p = m.s.query(m.Playlist).filter_by(id=playlist_id).first()
-    # Es mas eficiente tirar y reconstruir
-    # que buscar las que ya no existen y las nuevas
-    for old in p.songs:
-        p.songs.remove(old)
-    for song in songs:
-        s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
-        s = s if s else m.Song(**song)
-        p.songs.append(s)
+    old_yt_ids = [s.youtube_id for s in p.songs]
+    new_yt_ids = [s['youtube_id'] for s in songs]
+    songs_to_add = [s for s in songs if s['youtube_id'] not in old_yt_ids]
+    songs_to_remove = [s for s in p.songs if s.youtube_id not in new_yt_ids]
+    for song in songs_to_remove:
+        p.songs.remove(song)
+    for song in songs_to_add:
+        p.songs.append(song)
     m.s.commit()
     return {
         'total': len(p.songs),
-        'missing': len(p.songs) - m.s.query(
-            m.Downloaded.song_id).filter(and_(
-                m.Downloaded.user_id == user_id,
-                m.Downloaded.playlist_id == p.id
-            )).count()
+        'missing': len(p.songs) + len(songs_to_add) - len(songs_to_remove)
     }
 
 def update_last_date_type(playlist_id, user_id, tipo):

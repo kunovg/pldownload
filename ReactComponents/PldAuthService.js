@@ -123,4 +123,17 @@ export default class PldAuthService extends EventEmitter{
       headers: {User: `${this.getUserId()}`}
     });
   }
+  /**
+  * Request to start a partial download of playlist
+  * @param {Integer} playlistId 
+  * @return {Object} {success}
+  */
+  downloadPartial(playlistId){
+    return axios({
+      method: 'post',
+      url: 'http://localhost:5000/partialdownload',
+      data: {playlistId: playlistId},
+      headers: {User: `${this.getUserId()}`}
+    });
+  }
 }

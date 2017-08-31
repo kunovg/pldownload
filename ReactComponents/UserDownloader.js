@@ -15,6 +15,7 @@ class Downloader extends Component {
         <Button
           bsStyle="link"
           className='pl-button'
+          disabled={this.props.disabled}
           onClick={this.props.clickHandler}>
           <Glyphicon glyph="save"/>
         </Button>)
@@ -46,8 +47,15 @@ class Updater extends Component {
 }
 
 class PlaylistRow extends Component {
-  constructor(props){super(props)}
-  handleFullDownload(){this.props.auth.downloadFull(this.props.id)}
+  constructor(props){super(props); this.state={downloading: false}}
+  handleFullDownload(){
+    this.setState({downloading: true})
+    this.props.auth.downloadFull(this.props.id)
+  }
+  handlePartialDownload(){
+    this.setState({downloading: true})
+    this.props.auth.downloadPartial(this.props.id)
+  }
   handleRemove(){
     this.props.auth.unlinkPlaylist(this.props.id).then(res => {
       if(res.data){
@@ -63,9 +71,9 @@ class PlaylistRow extends Component {
         <td className='pl-table-td'><a className='pl-name' href={this.props.url} target="_blank">{this.props.name}</a></td>
         <td className='pl-table-td'>{this.props.total}</td>
         <td className='pl-table-td'>{this.props.missing}</td>
-        <td className='pl-table-td'><Downloader clickHandler={this.handleFullDownload.bind(this)} {...this.props}/></td>
-        <td className='pl-table-td'><Button bsStyle="link" className='pl-button'><Glyphicon glyph="save"/></Button></td>
-        <td className='pl-table-td'><Button onClick={this.handleRemove.bind(this)} bsStyle="link" className='pl-button delete-btn'><Glyphicon glyph="remove"/></Button></td>
+        <td className='pl-table-td'><Downloader clickHandler={this.handleFullDownload.bind(this)} disabled={this.state.downloading} {...this.props}/></td>
+        <td className='pl-table-td'><Downloader clickHandler={this.handlePartialDownload.bind(this)} disabled={this.state.downloading} {...this.props}/></td>
+        <td className='pl-table-td'><Button onClick={this.handleRemove.bind(this)} disabled={this.state.downloading} bsStyle="link" className='pl-button delete-btn'><Glyphicon glyph="remove"/></Button></td>
       </tr>)
   }
 }

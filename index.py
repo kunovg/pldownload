@@ -108,10 +108,10 @@ def fulldownload():
 
     playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
-    playlist_path = DIRECTORY+playlist.get('uuid')
+    playlist_path = DIRECTORY + playlist['uuid']
     UTILS.create_dir(playlist_path)
-    length = len(playlist.get('songs'))
-    for s, i in zip(playlist.get('songs'), range(length)):
+    length = len(playlist['songs'])
+    for s, i in zip(playlist['songs'], range(length)):
         idsqueue.put({
             **s,
             'c': i,
@@ -142,10 +142,11 @@ def partialdownload():
 
     playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
-    playlist_path = DIRECTORY+playlist.get('uuid')
+    playlist_path = DIRECTORY + playlist['uuid']
     UTILS.create_dir(playlist_path)
-    length = len(playlist.get('songs'))
-    for s, i in zip(playlist.get('songs'), range(length)):
+    songs = [s for s in playlist['songs'] if s['id'] not in playlist['downloaded']]
+    length = len(songs)
+    for s, i in zip(songs, range(length)):
         idsqueue.put({
             **s,
             'c': i,

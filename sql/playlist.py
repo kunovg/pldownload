@@ -104,4 +104,5 @@ def get_playlist_information(playlist_id, user_id):
                    'name': s.name,
                    'youtube_id': s.youtube_id}
                   for s in playlist.songs],
+        'downloaded': m.s.query(m.Downloaded.song_id).filter_by(user_id=user_id, playlist_id=playlist_id).all()
     }

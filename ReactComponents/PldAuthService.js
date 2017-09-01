@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { EventEmitter } from 'events';
+import jwtDecode from 'jwt-decode';
 
 /********************
 De esta clase se obtiene toda la información del servidor

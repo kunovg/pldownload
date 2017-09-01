@@ -12,13 +12,63 @@ from queue import Queue
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask import Flask, request, send_file, render_template
+# from flask_jwt_extended import JWTManager, jwt_required,\
+#     create_access_token, get_jwt_identity, get_jwt_claims
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
 CORS(app)
+# jwt = JWTManager(app)
 socket = SocketIO(app)
 DIRECTORY, SPOTIFY, linksqueue, idsqueue = None, None, None, None
 config = json.load(open("config.json", "r"))
+
+# Using the user_claims_loader, we can specify a method that will be
+# called when creating access tokens, and add these claims to the said
+# token. This method is passed the identity of who the token is being
+# created for, and must return data that is json serializable
+# @jwt.user_claims_loader
+# def add_claims_to_access_token(identity):
+#     return {
+#         'hello': identity,
+#         'foo': ['bar', 'baz']
+#     }
+
+# Provide a method to create access tokens. The create_access_token()
+# function is used to actually generate the token
+# @app.route('/login', methods=['POST'])
+# def login():
+#     if not request.is_json:
+#         return jsonify({"msg": "Missing JSON in request"}), 400
+
+#     params = request.get_json()
+#     username = params.get('username', None)
+#     password = params.get('password', None)
+
+#     if not username:
+#         return jsonify({"msg": "Missing username parameter"}), 400
+#     if not password:
+#         return jsonify({"msg": "Missing password parameter"}), 400
+
+#     # if username != 'test' or password != 'test':
+#     #     return jsonify({"msg": "Bad username or password"}), 401
+
+#     # Identity can be any data that is json serializable
+#     ret = {'access_token': create_access_token(identity=username)}
+#     return jsonify(ret), 200
+
+# Protect a view with jwt_required, which requires a valid access token
+# in the request to access.
+# @app.route('/protected', methods=['GET'])
+# @jwt_required
+# def protected():
+#     # Access the identity of the current user with get_jwt_identity
+#     claims = get_jwt_claims()
+#     print(claims)
+#     return jsonify({
+#         'hello_from': claims['hello'],
+#         'foo_is': claims['foo']
+#     }), 200
 
 @app.route("/")
 def index():

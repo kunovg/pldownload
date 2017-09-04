@@ -213,7 +213,7 @@ if __name__ == "__main__":
     SOUNDCLOUD = SoundCloud(config['soundcloud_client_id'])
     linksqueue, idsqueue = Queue(), Queue()
     for x in range(config['scrapper_workers']):
-        scrapper = Downloaders.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'])
+        scrapper = Downloaders.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'], config['soundcloud_client_id'])
         scrapper.daemon = True
         scrapper.start()
     for x in range(config['downloader_workers']):

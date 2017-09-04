@@ -8,10 +8,9 @@ from queue import Queue
 from threading import Thread
 
 class Scrapper(Thread):
-    def __init__(self, queue, idvideo, timeout=10):
+    def __init__(self, queue, timeout=10):
         Thread.__init__(self)
         self.queue = queue
-        self.idvideo = idvideo
         self.timeout = timeout
 
     def Run(self):
@@ -21,9 +20,26 @@ class Scrapper(Thread):
         if self.is_alive():
             self.join()
 
+class ScDownloader(Scrapper):
+    def __init__(self, queue, permalink, client_id, timeout=10):
+        Scrapper.__init__(self, queue, permalink, timeout)
+        self.permalink = permalink
+        self.client_id = client_id
+
+    def run(self):
+        try:
+            self.get_link()
+        except:
+            print("ScDownloader error:", sys.exc_info()[0])
+
+    def get_link(self):
+        r = requests.get('http://api.soundcloud.com/resolve?client_id={}&url={}'.format(self.client_id, self.permalink))
+        self.queue.put('{}?client_id={}'.format(r.json()['stream_url'], self.client_id))
+
 class Vubey(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):
-        Scrapper.__init__(self, queue, idvideo, timeout)
+        Scrapper.__init__(self, queue, timeout)
+        self.idvideo = idvideo
 
     def run(self):
         try:
@@ -45,7 +61,8 @@ class Vubey(Scrapper):
 
 class Mp3Cc(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):
-        Scrapper.__init__(self, queue, idvideo, timeout)
+        Scrapper.__init__(self, queue, timeout)
+        self.idvideo = idvideo
         self.s = {'1': "fzaqn", '2': "agobe", '3': "topsa", '4': "hcqwb", '5': "gdasz", '6': "iooab", '7': "idvmg", '8': "bjtpp", '9': "sbist", '10': "gxgkr", '11': "njmvd", '12': "trciw", '13': "sjjec", '14': "puust", '15': "ocnuq", '16': "qxqnh", '17': "jureo", '18': "obdzo", '19': "wavgy", '20': "qlmqh", '21': "avatv", '22': "upajk", '23': "tvqmt", '24': "xqqqh", '25': "xrmrw", '26': "fjhlv", '27': "ejtbn", '28': "urynq", '29': "tjljs", '30': "ywjkg"}
 
     def run(self):
@@ -86,7 +103,8 @@ class Mp3Cc(Scrapper):
 
 class Mp3Org(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):
-        Scrapper.__init__(self, queue, idvideo, timeout)
+        Scrapper.__init__(self, queue, timeout)
+        self.idvideo = idvideo
         self.A = {"a": 870, "b": 906, "c": 167, "d": 119, "e": 130, "f": 899, "g": 248, "h": 123, "i": 627, "j": 706, "k": 694, "l": 421, "m": 214, "n": 561, "o": 819, "p": 925, "q": 857, "r": 539, "s": 898, "t": 866, "u": 433, "v": 299, "w": 137, "x": 285, "y": 613, "z": 635, "_": 638, "&": 639, "-": 880, "/": 687, "=": 721}
         self.r3 = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 
@@ -139,21 +157,25 @@ class Mp3Org(Scrapper):
         self.queue.put(url)
 
 class LinkGeneratorWorker(Thread):
-    def __init__(self, idsqueue, linksqueue, maxtime):
+    def __init__(self, idsqueue, linksqueue, maxtime, sc_client_id):
         Thread.__init__(self)
         self.idsqueue = idsqueue
         self.linksqueue = linksqueue
         self.maxtime = maxtime
+        self.sc_client_id = sc_client_id
 
     def run(self):
         while True:
             obj = self.idsqueue.get()
             tempqueue = Queue()
-            threads = [
-                Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
-                Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
-                Vubey(tempqueue, obj['youtube_id'], self.maxtime)
-            ]
+            if 'youtube_id' in obj:
+                threads = [
+                    Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
+                    Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
+                    Vubey(tempqueue, obj['youtube_id'], self.maxtime)
+                ]
+            elif 'sc_permalink' in obj:
+                threads = [ScDownloader(tempqueue, obj['sc_permalink'], self.sc_client_id, self.maxtime)]
             for th in threads:
                 th.daemon = True
                 th.start()

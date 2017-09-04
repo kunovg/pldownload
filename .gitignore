@@ -38,6 +38,7 @@ config.json
 *.pyc
 __pycache__/*
 */__pycache__/*
+**/__pycache__/
 *.txt
 denue/*
 .pep8

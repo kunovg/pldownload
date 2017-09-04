@@ -26,13 +26,13 @@ class Vubey(Scrapper):
         Scrapper.__init__(self, queue, idvideo, timeout)
 
     def run(self):
-        try:
-            self.get_link()
-        except:
-            print("Vubey error:", sys.exc_info()[0])
+        self.get_link()
+        # try:
+        # except:
+        #     print("Vubey error:", sys.exc_info()[0])
 
     def get_link(self):
-        youtubeid = "https://www.youtube.com/watch?v=" + self.id_video
+        youtubeid = "https://www.youtube.com/watch?v=" + self.idvideo
         headers = {'Content-Type': 'application/x-www-form-urlencoded', 'Accept-Encoding': 'gzip, deflate, br'}
         data = {'videoURL': youtubeid, 'quality': '320', 'submit': 'Convert+To+MP3'}
         r = requests.post('https://vubey.yt/', headers=headers, data=data)

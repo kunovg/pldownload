@@ -3,72 +3,57 @@ import eventlet
 import json
 from platforms.spotify import Spotify
 from platforms.youtube import Youtube
+from platforms.soundcloud import SoundCloud
 import utils.utils as UTILS
 import utils.pwsecurity as PWS
 import utils.downloaders as Downloaders
 import sql.user as USER
 import sql.playlist as PLAYLIST
 from queue import Queue
+from flask import Flask, request, send_file, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
-from flask import Flask, request, send_file, render_template
-# from flask_jwt_extended import JWTManager, jwt_required,\
-#     create_access_token, get_jwt_identity, get_jwt_claims
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_claims
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
 CORS(app)
-# jwt = JWTManager(app)
+jwt = JWTManager(app)
 socket = SocketIO(app)
-DIRECTORY, SPOTIFY, linksqueue, idsqueue = None, None, None, None
+DIRECTORY = None
+SPOTIFY = None
+SOUNDCLOUD = None
+linksqueue = None
+idsqueue = None
 config = json.load(open("config.json", "r"))
 
 # Using the user_claims_loader, we can specify a method that will be
 # called when creating access tokens, and add these claims to the said
 # token. This method is passed the identity of who the token is being
 # created for, and must return data that is json serializable
-# @jwt.user_claims_loader
-# def add_claims_to_access_token(identity):
-#     return {
-#         'hello': identity,
-#         'foo': ['bar', 'baz']
-#     }
+@jwt.user_claims_loader
+def add_claims_to_access_token(identity):
+    info = USER.get_basic_info(identity)
+    return {
+        'name': info['name'],
+        'id': identity
+    }
 
 # Provide a method to create access tokens. The create_access_token()
 # function is used to actually generate the token
-# @app.route('/login', methods=['POST'])
-# def login():
-#     if not request.is_json:
-#         return jsonify({"msg": "Missing JSON in request"}), 400
+@app.route('/login', methods=['POST'])
+def login():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
 
-#     params = request.get_json()
-#     username = params.get('username', None)
-#     password = params.get('password', None)
-
-#     if not username:
-#         return jsonify({"msg": "Missing username parameter"}), 400
-#     if not password:
-#         return jsonify({"msg": "Missing password parameter"}), 400
-
-#     # if username != 'test' or password != 'test':
-#     #     return jsonify({"msg": "Bad username or password"}), 401
-
-#     # Identity can be any data that is json serializable
-#     ret = {'access_token': create_access_token(identity=username)}
-#     return jsonify(ret), 200
-
-# Protect a view with jwt_required, which requires a valid access token
-# in the request to access.
-# @app.route('/protected', methods=['GET'])
-# @jwt_required
-# def protected():
-#     # Access the identity of the current user with get_jwt_identity
-#     claims = get_jwt_claims()
-#     print(claims)
-#     return jsonify({
-#         'hello_from': claims['hello'],
-#         'foo_is': claims['foo']
-#     }), 200
+    _id = USER.valid_password(
+        password=request.json['password'],
+        name=request.json['name'])
+    if not _id:
+        return jsonify({"msg": "Wrong username or password"}), 400
+    # Identity can be any data that is json serializable
+    ret = {'access_token': create_access_token(identity=_id)}
+    return jsonify(ret), 200
 
 @app.route("/")
 def index():
@@ -82,9 +67,9 @@ def insert_user():
     return json.dumps(True)
 
 @app.route('/playlist/create', methods=['POST'])
+@jwt_required
 def insert_playlist():
-    r = request.json
-    url = r.get('url')
+    url = request.json.get('url')
     source = UTILS.get_playlist_source(url)
     if source == 'YouTube':
         songs = list(Youtube.scrap_playlist(url))
@@ -93,68 +78,67 @@ def insert_playlist():
         user, idplaylist = Spotify.get_user_and_id(url)
         songs = SPOTIFY.scrap_playlist(user, idplaylist)
         name = SPOTIFY.get_sp_tracklist_name(url)
+    elif source == 'SoundCloud':
+        songs = SOUNDCLOUD.scrap_playlist(url)
+        name = SOUNDCLOUD.get_playlist_name(url)
     res = PLAYLIST.create_playlist(
-        user_id=request.headers.get('User'),
+        user_id=get_jwt_claims()['id'],
         playlist=dict(source=source, url=url, name=name),
         songs=songs)
     return json.dumps(res)
 
 @app.route('/playlist/update', methods=['POST'])
+@jwt_required
 def update_playlist():
     r = request.json
-    source, url, songs = r.get('source'), r.get('url'), None
-    playlist_id, user_id = r.get('id'), request.headers.get('User')
+    source, url = r.get('source'), r.get('url')
     if source == 'YouTube':
         songs = list(Youtube.scrap_playlist(url))
     elif source == 'Spotify':
         user, idplaylist = Spotify.get_user_and_id(url)
         songs = SPOTIFY.scrap_playlist(user, idplaylist)
+    elif source == 'SoundCloud':
+        songs = SOUNDCLOUD.scrap_playlist(url)
     assert songs
     res = PLAYLIST.update_playlist(
-        playlist_id,
-        user_id=user_id,
+        playlist_id=r.get('id'),
+        user_id=get_jwt_claims()['id'],
         songs=songs)
     return json.dumps(res)
 
 @app.route('/playlist/unlink', methods=['POST'])
+@jwt_required
 def unlink_playlist():
-    r = request.json
-    playlist_id, user_id = r.get('id'), request.headers.get('User')
-    return json.dumps(PLAYLIST.unlink_playlist(user_id, playlist_id))
+    PLAYLIST.unlink_playlist(
+        user_id=get_jwt_claims()['id'],
+        playlist_id=request.json['id'])
+    return '', 200
 
 @app.route('/validate', methods=['POST'])
 def validate():
     attr, name = list(request.json.items())[0]
     return json.dumps(USER.valid(attr, name))
 
-@app.route('/login', methods=['POST'])
-def login():
-    _id = USER.valid_password(
-        password=request.json['password'],
-        name=request.json['name'])
-    if _id:
-        return json.dumps(USER.get_basic_info(_id))
-    return ('', 400)
-
 @app.route('/playlists', methods=['GET'])
+@jwt_required
 def get_playlists():
-    user_id = request.args.get('userId')
-    return json.dumps(USER.get_playlists(user_id))
+    return json.dumps(USER.get_playlists(get_jwt_claims()['id']))
 
 @app.route('/fulldownload', methods=['POST'])
+@jwt_required
 def fulldownload():
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
         PLAYLIST.update_last_date_type(playlist_id, user_id, tipo)
         PLAYLIST.add_downloaded(user_id, playlist_id, songs_id=songs_id)
-        print('emit1')
-        socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid, status='finished'), broadcast=True)
-        print('emit2')
+        socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid,
+                                       status='finished'), broadcast=True)
 
     playlist_id = request.json['playlistId']
-    user_id = request.headers.get('User')
+    user_id = get_jwt_claims()['id']
 
     # Mandar mensaje de descarga iniciada
-    socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started', c=0, t=1), broadcast=True)
+    socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started',
+                                   c=0, t=1), broadcast=True)
 
     playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
@@ -178,17 +162,20 @@ def fulldownload():
     return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 @app.route('/partialdownload', methods=['POST'])
+@jwt_required
 def partialdownload():
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
         PLAYLIST.update_last_date_type(playlist_id, user_id, tipo)
         PLAYLIST.add_downloaded(user_id, playlist_id, songs_id=songs_id)
-        socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid, status='finished'), broadcast=True)
+        socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid,
+                                       status='finished'), broadcast=True)
 
     playlist_id = request.json['playlistId']
-    user_id = request.headers.get('User')
+    user_id = get_jwt_claims()['id']
 
     # Mandar mensaje de descarga iniciada
-    socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started', c=0, t=1), broadcast=True)
+    socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started',
+                                   c=0, t=1), broadcast=True)
 
     playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
@@ -223,6 +210,7 @@ if __name__ == "__main__":
     DIRECTORY = config['file_directory']
     SPOTIFY = Spotify(config['spotify_token'])
     SPOTIFY.get_sp_token()
+    SOUNDCLOUD = SoundCloud(config['soundcloud_client_id'])
     linksqueue, idsqueue = Queue(), Queue()
     for x in range(config['scrapper_workers']):
         scrapper = Downloaders.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'])

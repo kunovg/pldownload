@@ -26,10 +26,10 @@ class Vubey(Scrapper):
         Scrapper.__init__(self, queue, idvideo, timeout)
 
     def run(self):
-        self.get_link()
-        # try:
-        # except:
-        #     print("Vubey error:", sys.exc_info()[0])
+        try:
+            self.get_link()
+        except:
+            print("Vubey error:", sys.exc_info()[0])
 
     def get_link(self):
         youtubeid = "https://www.youtube.com/watch?v=" + self.idvideo

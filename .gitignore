@@ -35,10 +35,10 @@ config.json
 
 # Others #
 ##########
-*.pyc
+**.pyc
 __pycache__/*
 */__pycache__/*
-**/__pycache__/
+**/__pycache__/*
 *.txt
 denue/*
 .pep8

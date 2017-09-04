@@ -66,7 +66,7 @@ class Spotify():
 
             offset = offset + 100
 
-    def scrap_spotify_playlist(self, spotify_user, listaid):
+    def scrap_playlist(self, spotify_user, listaid):
         for trackname in self.get_sp_tracknames(user=spotify_user, listaid=listaid):
             query_s = urllib.parse.urlencode({'search_query': '%s lyrics' % trackname})
             url = "https://www.youtube.com/results?" + query_s

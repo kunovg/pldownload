@@ -60,7 +60,8 @@ class Song(BASE):
     __tablename__ = 'song'
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
-    youtube_id = Column(String(255), unique=True)
+    youtube_id = Column(String(255), unique=True, nullable=True)
+    sc_permalink = Column(String(255), unique=True, nullable=True)
     artist = Column(String(255))
     album = Column(String(255))
 

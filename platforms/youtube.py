@@ -25,7 +25,7 @@ class Youtube():
         return playlist_title[:-10]  # Quitar la parte de " - YouTube"
 
     @classmethod
-    def scrap_youtube_playlist(cls, url):
+    def scrap_playlist(cls, url):
         mostrar_mas = None
         r = requests.get(url)
         parser = etree.HTMLParser()

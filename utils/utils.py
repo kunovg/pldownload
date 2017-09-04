@@ -13,7 +13,12 @@ def remove_special_characters(s):
 
 def get_playlist_source(url):
     # Hacer bien esta funcion
-    return 'Spotify' if 'spot' in url else 'YouTube'
+    if 'soundcloud' in url:
+        return 'SoundCloud'
+    if 'spot' in url:
+        return 'Spotify'
+    else:
+        return 'YouTube'
 
 def gen_uuid():
     return str(uuid.uuid4())

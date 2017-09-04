@@ -87,11 +87,11 @@ def insert_playlist():
     url = r.get('url')
     source = UTILS.get_playlist_source(url)
     if source == 'YouTube':
-        songs = list(Youtube.scrap_youtube_playlist(url))
+        songs = list(Youtube.scrap_playlist(url))
         name = Youtube.get_yt_playlist_title(url)
     elif source == 'Spotify':
         user, idplaylist = Spotify.get_user_and_id(url)
-        songs = SPOTIFY.scrap_spotify_playlist(user, idplaylist)
+        songs = SPOTIFY.scrap_playlist(user, idplaylist)
         name = SPOTIFY.get_sp_tracklist_name(url)
     res = PLAYLIST.create_playlist(
         user_id=request.headers.get('User'),
@@ -105,10 +105,10 @@ def update_playlist():
     source, url, songs = r.get('source'), r.get('url'), None
     playlist_id, user_id = r.get('id'), request.headers.get('User')
     if source == 'YouTube':
-        songs = list(Youtube.scrap_youtube_playlist(url))
+        songs = list(Youtube.scrap_playlist(url))
     elif source == 'Spotify':
         user, idplaylist = Spotify.get_user_and_id(url)
-        songs = SPOTIFY.scrap_spotify_playlist(user, idplaylist)
+        songs = SPOTIFY.scrap_playlist(user, idplaylist)
     assert songs
     res = PLAYLIST.update_playlist(
         playlist_id,

@@ -14,9 +14,10 @@ export default class PldAuthService extends EventEmitter{
     this.on('loginFail', () => { alert('Error de usuario y contraseña') });
   }
   getdownloadUrl(uuid){ return `http://localhost:5000/get?uuid=${uuid}` }
-  getName(){return localStorage.profile ? JSON.parse(localStorage.profile).name : null}
-  getUserId(){return localStorage.profile ? JSON.parse(localStorage.profile).id : null}
+  getAccessT(){ return localStorage.getItem('access_token'); }
   loggedIn(){ return localStorage.getItem('loggedIn'); }
+  getName(){ return jwtDecode(this.getAccessT()).user_claims.name; }
+  getUserId(){ return jwtDecode(this.getAccessT()).user_claims.id; }
   /**
   * Login
   * @param {Object} data - {user, password} 
@@ -34,18 +35,8 @@ export default class PldAuthService extends EventEmitter{
   */
   logout(){
     localStorage.removeItem('loggedIn');
-    localStorage.removeItem('profile');
+    localStorage.removeItem('access_token');
     this.emit('reload');
-  }
-  /**
-  * All of a user playlists
-  * @return {Array} list of objects with playlists information
-  */
-  getPlaylists(){
-    return axios({
-      method: 'get',
-      url: `http://localhost:5000/playlists?userId=${this.getUserId()}`,
-    });
   }
   /**
   * Checks if email or username is available
@@ -60,6 +51,17 @@ export default class PldAuthService extends EventEmitter{
     });
   }
   /**
+  * All of a user playlists
+  * @return {Array} list of objects with playlists information
+  */
+  getPlaylists(){
+    return axios({
+      method: 'get',
+      url: `http://localhost:5000/playlists?userId=${this.getUserId()}`,
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
+    });
+  }
+  /**
   * Register new user
   * @param {Object} data - {name, email, password} 
   * @return {Boolean} Always True, or 500 status
@@ -69,7 +71,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/user/create',
       data: data,
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
   /**
@@ -82,7 +84,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/playlist/update',
       data: data,
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
   /**
@@ -95,7 +97,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/playlist/unlink',
       data: {id: playlistId},
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
   /**
@@ -108,7 +110,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/playlist/create',
       data: data,
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
   /**
@@ -121,7 +123,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/fulldownload',
       data: {playlistId: playlistId},
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
   /**
@@ -134,7 +136,7 @@ export default class PldAuthService extends EventEmitter{
       method: 'post',
       url: 'http://localhost:5000/partialdownload',
       data: {playlistId: playlistId},
-      headers: {User: `${this.getUserId()}`}
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
 }

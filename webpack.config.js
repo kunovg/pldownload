@@ -6,7 +6,7 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'static/js'),
     filename: "bundle.js",
-    publicPath: "/static/"
+    publicPath: "/static/js"
   },
   stats: {
     colors: true,
@@ -31,20 +31,20 @@ module.exports = {
   devtool: "#cheap-module-source-map",
   plugins: [
     // new BundleAnalyzerPlugin(),
-    new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /en|es/), // Tomar solo locale en y es de locale
-    new webpack.optimize.UglifyJsPlugin({
-      mangle: true,
-      compress: {
-        warnings: false, // Suppress uglification warnings
-        pure_getters: true,
-        unsafe: true,
-        unsafe_comps: true,
-        screw_ie8: true
-      },
-      output: {
-        comments: false,
-      },
-      exclude: [/\.min\.js$/gi] // skip pre-minified libs
-    })
+    // new webpack.ContextReplacementPlugin(/moment[\/\\]locale$/, /en|es/), // Tomar solo locale en y es de locale
+    // new webpack.optimize.UglifyJsPlugin({
+    //   mangle: true,
+    //   compress: {
+    //     warnings: false, // Suppress uglification warnings
+    //     pure_getters: true,
+    //     unsafe: true,
+    //     unsafe_comps: true,
+    //     screw_ie8: true
+    //   },
+    //   output: {
+    //     comments: false,
+    //   },
+    //   exclude: [/\.min\.js$/gi] // skip pre-minified libs
+    // })
   ]
 }

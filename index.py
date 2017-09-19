@@ -17,6 +17,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
+app.secret_key = 'A0Zr98j/3yX'
 CORS(app)
 jwt = JWTManager(app)
 socket = SocketIO(app)
@@ -39,6 +40,10 @@ def add_claims_to_access_token(identity):
         'id': identity
     }
 
+@app.route("/")
+def index():
+    return render_template('index.html')
+
 # Provide a method to create access tokens. The create_access_token()
 # function is used to actually generate the token
 @app.route('/login', methods=['POST'])
@@ -54,10 +59,6 @@ def login():
     # Identity can be any data that is json serializable
     ret = {'access_token': create_access_token(identity=_id)}
     return jsonify(ret), 200
-
-@app.route("/")
-def index():
-    return render_template('index.html')
 
 @app.route('/user/create', methods=['POST'])
 def insert_user():

@@ -20,6 +20,7 @@ a{text-decoration: underline white;}
 .pl-table-row{color: #dfdfdf;}
 .pl-img-YouTube{content: url("../img/youtube_logo.png");height:25px;width: auto;}
 .pl-img-Spotify{content: url("../img/spotify_logo.png");height:25px;width: auto;}
+.pl-img-SoundCloud{content: url("../img/soundcloud_logo.png");height:25px;width: auto;}
 .pl-table-header{text-align: center;font-size: 16px;}
 .pl-table-td{border: none !important;}
 .pl-name{text-decoration: none; color: inherit;}

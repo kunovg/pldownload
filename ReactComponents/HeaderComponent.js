@@ -16,7 +16,7 @@ class LoginForm extends Component{
     this.setState({loading:true});
     this.props.auth.login(this.state).then(res=>{
       localStorage.setItem('loggedIn', true);
-      localStorage.setItem('profile', JSON.stringify(res.data));
+      localStorage.setItem('access_token', res.data.access_token);
       this.setState({loading:false});
       this.props.auth.emit('reload');
     }).catch(err=>{
@@ -93,7 +93,15 @@ class RegisterForm extends Component{
     if(this.state.validEmail && this.state.validName && this.state.validPassword && this.state.validPassword2)
       this.setState({loading:true});
       this.props.auth.registerUser({name: this.state.name, email: this.state.email, password:this.state.password}).then(()=>{
-        _this.props.auth.login({name: _this.state.name, password: _this.state.password})
+        this.props.auth.login({name: _this.state.name, password: _this.state.password}).then(res=>{
+          localStorage.setItem('loggedIn', true);
+          localStorage.setItem('access_token', res.data.access_token);
+          this.setState({loading:false});
+          this.props.auth.emit('reload');
+        }).catch(err=>{
+          this.setState({loading:false});
+          this.props.auth.emit('loginFail');
+        })
       })
   }
   render(){

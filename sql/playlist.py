@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import models as m
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from datetime import datetime
 
 def create_playlist(user_id, playlist={}, songs=[{}]):
@@ -11,9 +11,12 @@ def create_playlist(user_id, playlist={}, songs=[{}]):
     if p is None:
         p = m.Playlist(**playlist)
         for song in songs:
-            if '/channel/' in song['youtube_id'] or '/user/' in song['youtube_id']:
+            if '/channel/' in song.get('youtube_id', '') or '/user/' in song.get('youtube_id', ''):
                 continue
-            s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
+            # s = m.s.query(m.Song).filter_by(youtube_id=song['youtube_id']).first()
+            s = m.s.query(m.Song).filter(or_(
+                m.Song.youtube_id == song.get('youtube_id', ''),
+                m.Song.sc_permalink == song.get('sc_permalink', ''))).first()
             s = s if s else m.Song(**song)
             p.songs.append(s)
         m.s.add(p)
@@ -95,10 +98,6 @@ def get_playlist_information(playlist_id, user_id):
         'url': playlist.url,
         'source': playlist.source,
         'uuid': uuid,
-        'songs': [{'id': s.id,
-                   'artist': s.artist,
-                   'name': s.name,
-                   'youtube_id': s.youtube_id}
-                  for s in playlist.songs],
+        'songs': [s.__dict__ for s in playlist.songs],
         'downloaded': m.s.query(m.Downloaded.song_id).filter_by(user_id=user_id, playlist_id=playlist_id).all()
     }

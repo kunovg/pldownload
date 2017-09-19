@@ -148,7 +148,7 @@ class UserDownloader extends Component {
   }
   handleClick(){
     let _this = this;
-    if (/youtube.com\/playlist\?list=.*|spotify.com\/user\/\d+|.+\/playlist\/.*|user:[^:]+:playlist:.*/.test(this.state.inputUrl)){
+    if (/youtube.com\/playlist\?list=.*|spotify.com\/user\/\d+|.+\/playlist\/.*|user:[^:]+:playlist:.*|soundcloud.com.*/.test(this.state.inputUrl)){
       let config = {url: this.state.inputUrl}
       this.setState({loading: true})
       this.props.auth.registerPlaylist(config).then(res=>{

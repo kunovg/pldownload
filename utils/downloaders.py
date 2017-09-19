@@ -22,7 +22,7 @@ class Scrapper(Thread):
 
 class ScDownloader(Scrapper):
     def __init__(self, queue, permalink, client_id, timeout=10):
-        Scrapper.__init__(self, queue, permalink, timeout)
+        Scrapper.__init__(self, queue, timeout)
         self.permalink = permalink
         self.client_id = client_id
 
@@ -168,22 +168,25 @@ class LinkGeneratorWorker(Thread):
         while True:
             obj = self.idsqueue.get()
             tempqueue = Queue()
-            if 'youtube_id' in obj:
+            if obj.get('youtube_id'):
                 threads = [
                     Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
                     Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
                     Vubey(tempqueue, obj['youtube_id'], self.maxtime)
                 ]
-            elif 'sc_permalink' in obj:
+            elif obj.get('sc_permalink'):
                 threads = [ScDownloader(tempqueue, obj['sc_permalink'], self.sc_client_id, self.maxtime)]
             for th in threads:
                 th.daemon = True
                 th.start()
             try:
                 link = tempqueue.get(True, self.maxtime)
+                # self.linksqueue.put({**obj, **{'link': link, 'not_dummy': True}})
                 self.linksqueue.put({**obj, **{'link': link}})
             except:
-                obj['playlist_queue'].put(False)
+                # obj['playlist_queue'].put(False)
+                # self.linksqueue.put(obj)
+                self.linksqueue.put({**obj, **{'link': None}})
                 print('Ningun metodo pudo obtener el link en menos de {} segundos'.format(self.maxtime))
             self.idsqueue.task_done()
 
@@ -227,6 +230,7 @@ class LinkDownloaderWorker(Thread):
     def run(self):
         while True:
             obj = self.linksqueue.get()
+            # if obj.get('not_dummy'):
             mp3name = '{}.mp3'.format(obj['name'])
             if self.Download(obj['link'], obj['playlist_path'], mp3name):
                 obj['song_download_callback'](obj['playlist_queue'].qsize(), obj['total'])

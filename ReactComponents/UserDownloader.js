@@ -58,10 +58,7 @@ class PlaylistRow extends Component {
   }
   handleRemove(){
     this.props.auth.unlinkPlaylist(this.props.id).then(res => {
-      if(res.data){
-        console.log('eliminando')
-        this.props.removePlaylist(this.props.id)
-      }
+      this.props.removePlaylist(this.props.id)
     })
   }
   render(){
@@ -79,36 +76,12 @@ class PlaylistRow extends Component {
 }
 
 class PlaylistsTable extends Component {
-  constructor(props){super(props); this.state={}}
-  componentDidMount(){
-    let userId = this.props.auth.getUserId(),
-      socket = io.connect('http://localhost:5000'),
-      _this = this;
-    // WebSocket Listener
-    socket.on(`${userId}`, data => {
-      let playlists = _this.state.playlists;
-      playlists.forEach((p, i) => {
-        if(p.id == data.playlist_id){
-          playlists[i] = Object.assign({}, p, data)
-        }
-      })
-      _this.setState({playlists: playlists})
-    });
-  }
-  componentWillReceiveProps(nextProps){
-    this.setState({playlists: nextProps.playlists})
-  }
-  removePlaylist(id){
-    console.log(id)
-    let playlists = this.state.playlists;
-    let newplaylists = playlists.filter(p => p.id != id)
-    this.setState({playlists: newplaylists})
-  }
+  constructor(props){super(props);}
   render(){
-    let rows = this.state.playlists && this.state.playlists.map((obj,i) => <PlaylistRow
+    let rows = this.props.playlists && this.props.playlists.map((obj,i) => <PlaylistRow
         key={i}
         auth={this.props.auth}
-        removePlaylist={this.removePlaylist.bind(this)}
+        removePlaylist={this.props.removePlaylist}
         {...obj}/>)
     if(rows && rows.length == 0){ rows = (<tr><td colSpan="8">No playlists</td></tr>) }
     return(<Table responsive id='playliststable'>
@@ -141,10 +114,30 @@ class UserDownloader extends Component {
     }
   }
   componentDidMount(){
-    let _this = this;
+    let _this = this,
+        userId = this.props.auth.getUserId(),
+        socket = io.connect('http://localhost:5000');
+
+    // Cargar las playlists
     this.props.auth.getPlaylists().then(res =>{
       _this.setState({playlists: res.data})
     })
+
+    // WebSocket Listener
+    socket.on(`${userId}`, data => {
+      let playlists = _this.state.playlists;
+      playlists.forEach((p, i) => {
+        if(p.id == data.playlist_id){
+          playlists[i] = Object.assign({}, p, data)
+        }
+      })
+      _this.setState({playlists: playlists})
+    });
+  }
+  inputOnChange(e){ this.setState({inputUrl: e.target.value}) }
+  removePlaylist(id){
+    let {playlists} = this.state;
+    this.setState({playlists: playlists.filter(p => p.id != id)})
   }
   handleClick(){
     let _this = this;
@@ -167,7 +160,7 @@ class UserDownloader extends Component {
           type="text"
           placeholder="Url"
           className="mc-input bottom-border"
-          onChange={e => this.setState({inputUrl:e.target.value})}
+          onChange={this.inputOnChange.bind(this)}
           value={this.state.inputUrl}
           />
         <Button
@@ -175,7 +168,10 @@ class UserDownloader extends Component {
           className='mc-button inline-button'
           onClick={this.handleClick.bind(this)}>
           <Glyphicon glyph="plus"/> Add</Button>
-        <PlaylistsTable playlists={this.state.playlists} auth={this.props.auth}/>
+        <PlaylistsTable
+          playlists={this.state.playlists}
+          removePlaylist={this.removePlaylist.bind(this)}
+          auth={this.props.auth}/>
         {this.state.loading ? <div className='body-loading'></div> : null}
       </div>)
   }

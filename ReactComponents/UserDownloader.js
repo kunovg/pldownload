@@ -32,8 +32,10 @@ class Updater extends Component {
   updatePlaylist(){
     let {source, id, url} = this.props
     let config = {source: source, id: id, url: url}
+    this.props.showLoading()
     this.props.auth.updatePlaylist(config).then(res=>{
-      console.log(res)
+      this.props.hideLoading()
+      this.props.updateTotalMissing(id, res.data)
     })
   }
   render(){
@@ -80,8 +82,7 @@ class PlaylistsTable extends Component {
   render(){
     let rows = this.props.playlists && this.props.playlists.map((obj,i) => <PlaylistRow
         key={i}
-        auth={this.props.auth}
-        removePlaylist={this.props.removePlaylist}
+        {...this.props}
         {...obj}/>)
     if(rows && rows.length == 0){ rows = (<tr><td colSpan="8">No playlists</td></tr>) }
     return(<Table responsive id='playliststable'>
@@ -135,17 +136,25 @@ class UserDownloader extends Component {
     });
   }
   inputOnChange(e){ this.setState({inputUrl: e.target.value}) }
+  showLoading(){this.setState({loading: true})}
+  hideLoading(){this.setState({loading:false})}
   removePlaylist(id){
     let {playlists} = this.state;
     this.setState({playlists: playlists.filter(p => p.id != id)})
+  }
+  updateTotalMissing(id, data){
+    let playlists = this.state.playlists;
+    let i = playlists.findIndex(p => p.id==id);
+    playlists[i] = Object.assign({}, playlists[i], data);
+    this.setState({playlists: playlists});
   }
   handleClick(){
     let _this = this;
     if (/youtube.com\/playlist\?list=.*|spotify.com\/user\/\d+|.+\/playlist\/.*|user:[^:]+:playlist:.*|soundcloud.com.*/.test(this.state.inputUrl)){
       let config = {url: this.state.inputUrl}
-      this.setState({loading: true})
+      this.showLoading()
       this.props.auth.registerPlaylist(config).then(res=>{
-        _this.setState({loading:false})
+        this.hideLoading()
         if(res.data){
           _this.setState({playlists: _this.state.playlists.concat(res.data), inputUrl: ''})
         }
@@ -171,6 +180,9 @@ class UserDownloader extends Component {
         <PlaylistsTable
           playlists={this.state.playlists}
           removePlaylist={this.removePlaylist.bind(this)}
+          updateTotalMissing={this.updateTotalMissing.bind(this)}
+          showLoading={this.showLoading.bind(this)}
+          hideLoading={this.hideLoading.bind(this)}
           auth={this.props.auth}/>
         {this.state.loading ? <div className='body-loading'></div> : null}
       </div>)

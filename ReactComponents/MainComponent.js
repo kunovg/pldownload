@@ -7,7 +7,11 @@ class MainComponent extends Component {
   constructor(props) {
     super(props);  
   }
-  componentDidMount() {  }
+  componentDidMount(){
+    if(this.props.auth.loggedIn()){
+      this.props.auth.validToken().catch(r=>this.props.auth.logout())
+    }
+  }
   render() {
     return (
       <div className="mc-container">

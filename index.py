@@ -44,8 +44,11 @@ def add_claims_to_access_token(identity):
 def index():
     return render_template('index.html')
 
-# Provide a method to create access tokens. The create_access_token()
-# function is used to actually generate the token
+@app.route("/valid_token")
+@jwt_required
+def valid_token():
+    return ('', 200)
+
 @app.route('/login', methods=['POST'])
 def login():
     if not request.is_json:

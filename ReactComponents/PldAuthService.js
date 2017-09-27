@@ -139,4 +139,14 @@ export default class PldAuthService extends EventEmitter{
       headers: {Authorization: `Bearer ${this.getAccessT()}`}
     });
   }
+  /**
+  * Request to start check if current token is valid
+  */
+  validToken(){
+    return axios({
+      method: 'get',
+      url: 'http://localhost:5000/valid_token',
+      headers: {Authorization: `Bearer ${this.getAccessT()}`}
+    });
+  }
 }

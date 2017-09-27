@@ -53,11 +53,11 @@ def update_playlist(playlist_id, user_id=None, songs=[{}]):
     for song in songs_to_remove:
         p.songs.remove(song)
     for song in songs_to_add:
-        p.songs.append(song)
+        p.songs.append(m.Song(**song))
     m.s.commit()
     return {
         'total': len(p.songs),
-        'missing': len(p.songs) + len(songs_to_add) - len(songs_to_remove)
+        'missing': len(old_yt_ids) + len(songs_to_add) - len(songs_to_remove)
     }
 
 def update_last_date_type(playlist_id, user_id, tipo):

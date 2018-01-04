@@ -17,9 +17,11 @@ from platforms.youtube import Youtube
 from workers.linkdownloader import LinkDownloader
 from workers.linkgenerator import LinkGenerator
 
+config = json.load(open("config.json", "r"))
+
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
-app.secret_key = 'A0Zr98j/3yX'
+app.secret_key = config['app_secret_key']
 CORS(app)
 jwt = JWTManager(app)
 socket = SocketIO(app)
@@ -27,7 +29,6 @@ Spotify = None
 idsqueue = None
 SoundCloud = None
 linksqueue = None
-config = json.load(open("config.json", "r"))
 
 DIRECTORY = None
 

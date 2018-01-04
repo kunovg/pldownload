@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 import eventlet
 import json
-from platforms.spotify import Spotify
-from platforms.youtube import Youtube
-from platforms.soundcloud import SoundCloud
-import utils.utils as UTILS
-import utils.pwsecurity as PWS
-import utils.downloaders as Downloaders
-import sql.user as USER
-import sql.playlist as PLAYLIST
 from queue import Queue
 from flask import Flask, request, send_file, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_claims
+
+import utils.utils as utils
+import utils.pwsecurity as pwsecurity
+import sql.user as sql_user
+import sql.playlist as sql_playlist
+import platforms.spotify as spotify
+import platforms.soundcloud as soundcloud
+from platforms.youtube import Youtube
+from workers.linkdownloader import LinkDownloader
+from workers.linkgenerator import LinkGenerator
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
@@ -21,12 +23,13 @@ app.secret_key = 'A0Zr98j/3yX'
 CORS(app)
 jwt = JWTManager(app)
 socket = SocketIO(app)
-DIRECTORY = None
-SPOTIFY = None
-SOUNDCLOUD = None
-linksqueue = None
+Spotify = None
 idsqueue = None
+SoundCloud = None
+linksqueue = None
 config = json.load(open("config.json", "r"))
+
+DIRECTORY = None
 
 # Using the user_claims_loader, we can specify a method that will be
 # called when creating access tokens, and add these claims to the said
@@ -34,7 +37,7 @@ config = json.load(open("config.json", "r"))
 # created for, and must return data that is json serializable
 @jwt.user_claims_loader
 def add_claims_to_access_token(identity):
-    info = USER.get_basic_info(identity)
+    info = sql_user.get_basic_info(identity)
     return {
         'name': info['name'],
         'id': identity
@@ -54,7 +57,7 @@ def login():
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
-    _id = USER.valid_password(
+    _id = sql_user.valid_password(
         password=request.json['password'],
         name=request.json['name'])
     if not _id:
@@ -66,26 +69,26 @@ def login():
 @app.route('/user/create', methods=['POST'])
 def insert_user():
     user = request.json
-    user['password'] = PWS.hash(user['password'])
-    USER.create_user(user=user)
+    user['password'] = pwsecurity.hash(user['password'])
+    sql_user.create_user(user=user)
     return json.dumps(True)
 
 @app.route('/playlist/create', methods=['POST'])
 @jwt_required
 def insert_playlist():
     url = request.json.get('url')
-    source = UTILS.get_playlist_source(url)
+    source = utils.get_playlist_source(url)
     if source == 'YouTube':
         songs = list(Youtube.scrap_playlist(url))
         name = Youtube.get_yt_playlist_title(url)
     elif source == 'Spotify':
         user, idplaylist = Spotify.get_user_and_id(url)
-        songs = SPOTIFY.scrap_playlist(user, idplaylist)
-        name = SPOTIFY.get_sp_tracklist_name(url)
+        songs = Spotify.scrap_playlist(user, idplaylist)
+        name = Spotify.get_sp_tracklist_name(url)
     elif source == 'SoundCloud':
-        songs = SOUNDCLOUD.scrap_playlist(url)
-        name = SOUNDCLOUD.get_playlist_name(url)
-    res = PLAYLIST.create_playlist(
+        songs = SoundCloud.scrap_playlist(url)
+        name = SoundCloud.get_playlist_name(url)
+    res = sql_playlist.create_playlist(
         user_id=get_jwt_claims()['id'],
         playlist=dict(source=source, url=url, name=name),
         songs=songs)
@@ -100,11 +103,11 @@ def update_playlist():
         songs = list(Youtube.scrap_playlist(url))
     elif source == 'Spotify':
         user, idplaylist = Spotify.get_user_and_id(url)
-        songs = SPOTIFY.scrap_playlist(user, idplaylist)
+        songs = Spotify.scrap_playlist(user, idplaylist)
     elif source == 'SoundCloud':
-        songs = SOUNDCLOUD.scrap_playlist(url)
+        songs = SoundCloud.scrap_playlist(url)
     assert songs
-    res = PLAYLIST.update_playlist(
+    res = sql_playlist.update_playlist(
         playlist_id=r.get('id'),
         user_id=get_jwt_claims()['id'],
         songs=songs)
@@ -113,7 +116,7 @@ def update_playlist():
 @app.route('/playlist/unlink', methods=['POST'])
 @jwt_required
 def unlink_playlist():
-    PLAYLIST.unlink_playlist(
+    sql_playlist.unlink_playlist(
         user_id=get_jwt_claims()['id'],
         playlist_id=request.json['id'])
     return '', 200
@@ -121,19 +124,19 @@ def unlink_playlist():
 @app.route('/validate', methods=['POST'])
 def validate():
     attr, name = list(request.json.items())[0]
-    return json.dumps(USER.valid(attr, name))
+    return json.dumps(sql_user.valid(attr, name))
 
 @app.route('/playlists', methods=['GET'])
 @jwt_required
 def get_playlists():
-    return json.dumps(USER.get_playlists(get_jwt_claims()['id']))
+    return json.dumps(sql_user.get_playlists(get_jwt_claims()['id']))
 
 @app.route('/fulldownload', methods=['POST'])
 @jwt_required
 def fulldownload():
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
-        PLAYLIST.update_last_date_type(playlist_id, user_id, tipo)
-        PLAYLIST.add_downloaded(user_id, playlist_id, songs_id=songs_id)
+        sql_playlist.update_last_date_type(playlist_id, user_id, tipo)
+        sql_playlist.add_downloaded(user_id, playlist_id, songs_id=songs_id)
         socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid,
                                        status='finished'), broadcast=True)
 
@@ -144,10 +147,10 @@ def fulldownload():
     socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started',
                                    c=0, t=1), broadcast=True)
 
-    playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
+    playlist = sql_playlist.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
     playlist_path = DIRECTORY + playlist['uuid']
-    UTILS.create_dir(playlist_path)
+    utils.create_dir(playlist_path)
     length = len(playlist['songs'])
     for s, i in zip(playlist['songs'], range(length)):
         idsqueue.put({
@@ -169,8 +172,8 @@ def fulldownload():
 @jwt_required
 def partialdownload():
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
-        PLAYLIST.update_last_date_type(playlist_id, user_id, tipo)
-        PLAYLIST.add_downloaded(user_id, playlist_id, songs_id=songs_id)
+        sql_playlist.update_last_date_type(playlist_id, user_id, tipo)
+        sql_playlist.add_downloaded(user_id, playlist_id, songs_id=songs_id)
         socket.emit(str(user_id), dict(playlist_id=playlist_id, uuid=uuid,
                                        status='finished'), broadcast=True)
 
@@ -181,10 +184,10 @@ def partialdownload():
     socket.emit(str(user_id), dict(playlist_id=playlist_id, status='started',
                                    c=0, t=1), broadcast=True)
 
-    playlist = PLAYLIST.get_playlist_information(playlist_id, user_id)
+    playlist = sql_playlist.get_playlist_information(playlist_id, user_id)
     playlist_queue = Queue()
     playlist_path = DIRECTORY + playlist['uuid']
-    UTILS.create_dir(playlist_path)
+    utils.create_dir(playlist_path)
     songs = [s for s in playlist['songs'] if s['id'] not in playlist['downloaded']]
     length = len(songs)
     for s, i in zip(songs, range(length)):
@@ -212,16 +215,17 @@ def get_file():
 
 if __name__ == "__main__":
     DIRECTORY = config['file_directory']
-    SPOTIFY = Spotify(config['spotify_token'])
-    SPOTIFY.get_sp_token()
-    SOUNDCLOUD = SoundCloud(config['soundcloud_client_id'])
+    Spotify = spotify.Spotify(config['spotify_token'])
+    Spotify.get_sp_token()
+    SoundCloud = soundcloud.SoundCloud(config['soundcloud_client_id'])
     linksqueue, idsqueue = Queue(), Queue()
     for x in range(config['scrapper_workers']):
-        scrapper = Downloaders.LinkGeneratorWorker(idsqueue, linksqueue, config['timeout_linkgenerator'], config['soundcloud_client_id'])
+        scrapper = LinkGenerator(idsqueue, linksqueue,
+            config['timeout_linkgenerator'], config['soundcloud_client_id'])
         scrapper.daemon = True
         scrapper.start()
     for x in range(config['downloader_workers']):
-        scrapper = Downloaders.LinkDownloaderWorker(linksqueue)
+        scrapper = LinkDownloader(linksqueue)
         scrapper.daemon = True
         scrapper.start()
     # app.run(host='0.0.0.0', debug=True, threaded=True)

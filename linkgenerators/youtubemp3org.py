@@ -1,6 +1,6 @@
 import json
 import requests
-from base import Scrapper
+from linkgenerators.base import Scrapper
 
 class Mp3Org(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):

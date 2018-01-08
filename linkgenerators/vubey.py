@@ -1,6 +1,6 @@
 import re
 import requests
-from base import Scrapper
+from linkgenerators.base import Scrapper
 
 class Vubey(Scrapper):
     def __init__(self, queue, idvideo, timeout=10):

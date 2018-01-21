@@ -1,5 +1,5 @@
 import requests
-from base import Scrapper
+from linkgenerators.base import Scrapper
 
 class ScDownloader(Scrapper):
     def __init__(self, queue, permalink, client_id, timeout=10):

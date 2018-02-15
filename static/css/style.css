@@ -25,9 +25,10 @@ a{text-decoration: underline white;}
 .pl-table-td{border: none !important;}
 .pl-name{text-decoration: none; color: inherit;}
 .pl-name:hover{color: #00fdff; text-decoration: none}
-.pl-button{color: inherit;}
+.pl-button{color: inherit;padding-top: 0;}
 .pl-button:hover{color: #00fdff;}
 .delete-btn:hover{color: red;}
+.usr-dwnldr-icon{font-size: 18px}
 /**************************
     HEADER COMPONENT
 **************************/

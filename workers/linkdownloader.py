@@ -20,7 +20,8 @@ class LinkDownloader(Thread):
         # Actualizar cuales canciones adicionales se han descargado y avisar al usuario que termino la descarga
         finished_download_callback(songs_id=songs_id)
 
-    def Download(self, link, playlist_path, mp3name):
+    @classmethod
+    def Download(cls, link, playlist_path, mp3name):
         mp3name = U.remove_special_characters(mp3name)
         try:
             completesongname = '/'.join([playlist_path, mp3name])

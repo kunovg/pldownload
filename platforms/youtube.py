@@ -15,7 +15,7 @@ class Youtube():
 
     @classmethod
     def count_youtube_playlist(cls, url):
-        return len(list(cls.scrap_youtube_playlist(url)))
+        return len(list(cls.scrap_playlist(url)))
 
     @staticmethod
     def get_yt_playlist_title(url):
@@ -45,4 +45,4 @@ class Youtube():
 
         if mostrar_mas:
             url_mostrarmas = 'https://www.youtube.com'+mostrar_mas
-            yield from cls.scrap_youtube_playlist(url_mostrarmas)
+            yield from cls.scrap_playlist(url_mostrarmas)

@@ -32,7 +32,9 @@ class Ovc(Scrapper):
                 'args[endTo]': '-1',
             }
         )
+        # print(r.json())
         r = requests.get('https://www.onlinevideoconverter.com/es/success?id=%s' % r.json()['result']['dPageId'])
+        # print(r.)
         parser = etree.HTMLParser()
         tree = etree.parse(StringIO(r.text), parser)
         return tree.xpath('//a[@id="downloadq"]')[0].attrib['href']

@@ -4,6 +4,8 @@ from linkgenerators.soundcloud import ScDownloader
 from linkgenerators.vubey import Vubey
 from linkgenerators.youtubemp3org import Mp3Org
 from linkgenerators.youtubetomp3cc import Mp3Cc
+from linkgenerators.onlinevideoconverter import Ovc
+from linkgenerators.twoconv import TwoConv
 
 class LinkGenerator(Thread):
     def __init__(self, idsqueue, linksqueue, maxtime, sc_client_id):
@@ -19,9 +21,12 @@ class LinkGenerator(Thread):
             tempqueue = Queue()
             if obj.get('youtube_id'):
                 threads = [
-                    Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
-                    Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
-                    Vubey(tempqueue, obj['youtube_id'], self.maxtime)
+                    # Deprecated
+                    # Mp3Cc(tempqueue, obj['youtube_id'], self.maxtime),
+                    # Mp3Org(tempqueue, obj['youtube_id'], self.maxtime),
+                    # Vubey(tempqueue, obj['youtube_id'], self.maxtime),
+                    Ovc(tempqueue, obj['youtube_id'], self.maxtime),
+                    TwoConv(tempqueue, obj['youtube_id'], self.maxtime),
                 ]
             elif obj.get('sc_permalink'):
                 threads = [ScDownloader(tempqueue, obj['sc_permalink'], self.sc_client_id, self.maxtime)]

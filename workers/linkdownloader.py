@@ -21,13 +21,13 @@ class LinkDownloader(Thread):
         finished_download_callback(songs_id=songs_id)
 
     @classmethod
-    def Download(cls, link, playlist_path, mp3name):
+    def Download(cls, link, playlist_path, mp3name, headers=None):
         mp3name = U.remove_special_characters(mp3name)
         try:
             completesongname = '/'.join([playlist_path, mp3name])
             b = 0
-            while b < 10000:
-                r = requests.get(link, stream=True)
+            while b < 100000:
+                r = requests.get(link, headers=headers, stream=True)
                 if r.status_code == 404:
                     print('{} error 404'.format(link))
                     return False
@@ -46,7 +46,7 @@ class LinkDownloader(Thread):
             obj = self.linksqueue.get()
             # if obj.get('not_dummy'):
             mp3name = '{}.mp3'.format(obj['name'])
-            if self.Download(obj['link'], obj['playlist_path'], mp3name):
+            if self.Download(obj['link'], obj['playlist_path'], mp3name, headers=obj.get('headers')):
                 obj['song_download_callback'](obj['playlist_queue'].qsize(), obj['total'])
                 obj['playlist_queue'].put({
                     'name': mp3name,

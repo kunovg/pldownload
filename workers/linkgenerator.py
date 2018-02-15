@@ -34,9 +34,9 @@ class LinkGenerator(Thread):
                 th.daemon = True
                 th.start()
             try:
-                link = tempqueue.get(True, self.maxtime)
+                res = tempqueue.get(True, self.maxtime)
                 # self.linksqueue.put({**obj, **{'link': link, 'not_dummy': True}})
-                self.linksqueue.put({**obj, **{'link': link}})
+                self.linksqueue.put({**obj, **res})
             except:
                 # obj['playlist_queue'].put(False)
                 # self.linksqueue.put(obj)

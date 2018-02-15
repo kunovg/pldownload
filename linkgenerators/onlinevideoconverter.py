@@ -37,4 +37,4 @@ class Ovc(Scrapper):
         # print(r.)
         parser = etree.HTMLParser()
         tree = etree.parse(StringIO(r.text), parser)
-        return tree.xpath('//a[@id="downloadq"]')[0].attrib['href']
+        return {'link': tree.xpath('//a[@id="downloadq"]')[0].attrib['href']}

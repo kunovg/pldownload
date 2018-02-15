@@ -1,7 +1,11 @@
 import React, { Component } from 'react';
 import io from 'socket.io/node_modules/socket.io-client';
 import PldAuthService from './PldAuthService';
-import {Button, Glyphicon, Table, ProgressBar} from 'react-bootstrap';
+import {Button, Table, ProgressBar} from 'react-bootstrap';
+import FaDownload from 'react-icons/lib/fa/download';
+import FaRefresh from 'react-icons/lib/fa/refresh';
+import FaTrashO from 'react-icons/lib/fa/trash-o';
+import FaPlus from 'react-icons/lib/fa/plus';
 
 function OrigenFormatter(props){
   return <img className={`pl-img-${props.value}`}/>
@@ -17,7 +21,7 @@ class Downloader extends Component {
           className='pl-button'
           disabled={this.props.disabled}
           onClick={this.props.clickHandler}>
-          <Glyphicon glyph="save"/>
+          <FaDownload className="usr-dwnldr-icon" />
         </Button>)
     }
     else if(this.props.status == "finished"){
@@ -43,7 +47,7 @@ class Updater extends Component {
       bsStyle="link"
       className='pl-button'
       onClick={this.updatePlaylist.bind(this)}>
-      <Glyphicon glyph="refresh"/>
+      <FaRefresh className="usr-dwnldr-icon"/>
     </Button>)
   }
 }
@@ -72,7 +76,7 @@ class PlaylistRow extends Component {
         <td className='pl-table-td'>{this.props.missing}</td>
         <td className='pl-table-td'><Downloader clickHandler={this.handleFullDownload.bind(this)} disabled={this.state.downloading} {...this.props}/></td>
         <td className='pl-table-td'><Downloader clickHandler={this.handlePartialDownload.bind(this)} disabled={this.state.downloading} {...this.props}/></td>
-        <td className='pl-table-td'><Button onClick={this.handleRemove.bind(this)} disabled={this.state.downloading} bsStyle="link" className='pl-button delete-btn'><Glyphicon glyph="remove"/></Button></td>
+        <td className='pl-table-td'><Button onClick={this.handleRemove.bind(this)} disabled={this.state.downloading} bsStyle="link" className='pl-button delete-btn'><FaTrashO className="usr-dwnldr-icon" /></Button></td>
       </tr>)
   }
 }
@@ -176,7 +180,7 @@ class UserDownloader extends Component {
           bsStyle="primary"
           className='mc-button inline-button'
           onClick={this.handleClick.bind(this)}>
-          <Glyphicon glyph="plus"/> Add</Button>
+          <FaPlus className="usr-dwnldr-icon" /> Add</Button>
         <PlaylistsTable
           playlists={this.state.playlists}
           removePlaylist={this.removePlaylist.bind(this)}

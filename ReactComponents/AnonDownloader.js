@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
-import io from 'socket.io/node_modules/socket.io-client';
-import {Button, Glyphicon, Table} from 'react-bootstrap';
+import {Button, Table} from 'react-bootstrap';
+import FaDownload from 'react-icons/lib/fa/download';
 
 class AnonDownloader extends Component {
   constructor(props){
@@ -25,7 +25,7 @@ class AnonDownloader extends Component {
           className='mc-button'
           onClick={this.handleClick.bind(this)}
           style={{marginTop: 20}}>
-          <Glyphicon glyph="download-alt"/> Download</Button>
+          <FaDownload /> Download</Button>
       </div>)
   }
 }

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import eventlet
 import json
+import logging
 from queue import Queue
 from flask import Flask, request, send_file, render_template, jsonify
 from flask_cors import CORS
@@ -18,6 +19,9 @@ from workers.linkdownloader import LinkDownloader
 from workers.linkgenerator import LinkGenerator
 
 config = json.load(open("config.json", "r"))
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)
@@ -46,15 +50,18 @@ def add_claims_to_access_token(identity):
 
 @app.route("/")
 def index():
+    logger.debug("Index")
     return render_template('index.html')
 
 @app.route("/valid_token")
 @jwt_required
 def valid_token():
+    logger.debug("Valid Token")
     return ('', 200)
 
 @app.route('/login', methods=['POST'])
 def login():
+    logger.debug("Login")
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
@@ -69,6 +76,7 @@ def login():
 
 @app.route('/user/create', methods=['POST'])
 def insert_user():
+    logger.debug("Insert User")
     user = request.json
     user['password'] = pwsecurity.hash(user['password'])
     sql_user.create_user(user=user)
@@ -77,6 +85,7 @@ def insert_user():
 @app.route('/playlist/create', methods=['POST'])
 @jwt_required
 def insert_playlist():
+    logger.debug("Insert Playlist")
     url = request.json.get('url')
     source = utils.get_playlist_source(url)
     if source == 'YouTube':
@@ -98,6 +107,7 @@ def insert_playlist():
 @app.route('/playlist/update', methods=['POST'])
 @jwt_required
 def update_playlist():
+    logger.debug("Update Playlist")
     r = request.json
     source, url = r.get('source'), r.get('url')
     if source == 'YouTube':
@@ -117,6 +127,7 @@ def update_playlist():
 @app.route('/playlist/unlink', methods=['POST'])
 @jwt_required
 def unlink_playlist():
+    logger.debug("Unlink Playlist")
     sql_playlist.unlink_playlist(
         user_id=get_jwt_claims()['id'],
         playlist_id=request.json['id'])
@@ -124,17 +135,20 @@ def unlink_playlist():
 
 @app.route('/validate', methods=['POST'])
 def validate():
+    logger.debug("Validate Playlist")
     attr, name = list(request.json.items())[0]
     return json.dumps(sql_user.valid(attr, name))
 
 @app.route('/playlists', methods=['GET'])
 @jwt_required
 def get_playlists():
+    logger.debug("Get Playlists")
     return json.dumps(sql_user.get_playlists(get_jwt_claims()['id']))
 
 @app.route('/fulldownload', methods=['POST'])
 @jwt_required
 def fulldownload():
+    logger.debug("Full download")
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
         sql_playlist.update_last_date_type(playlist_id, user_id, tipo)
         sql_playlist.add_downloaded(user_id, playlist_id, songs_id=songs_id)
@@ -172,6 +186,7 @@ def fulldownload():
 @app.route('/partialdownload', methods=['POST'])
 @jwt_required
 def partialdownload():
+    logger.debug("Partial download")
     def finished_download_callback(user_id, playlist_id, uuid, songs_id, tipo):
         sql_playlist.update_last_date_type(playlist_id, user_id, tipo)
         sql_playlist.add_downloaded(user_id, playlist_id, songs_id=songs_id)
@@ -209,6 +224,7 @@ def partialdownload():
 
 @app.route('/get', methods=['GET'])
 def get_file():
+    logger.debug("Get file")
     return send_file(
         as_attachment=True,
         mimetype="application/zip",

@@ -20,7 +20,7 @@ export default class PldAuthService extends EventEmitter{
   getUserId(){ return jwtDecode(this.getAccessT()).user_claims.id; }
   /**
   * Login
-  * @param {Object} data - {user, password} 
+  * @param {Object} data - {user, password}
   * @return {Object} User profile
   */
   login(data){
@@ -40,7 +40,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Checks if email or username is available
-  * @param {Object} data - {attr: value} 
+  * @param {Object} data - {attr: value}
   * @return {Boolean} Available or not
   */
   validate(data){
@@ -63,7 +63,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Register new user
-  * @param {Object} data - {name, email, password} 
+  * @param {Object} data - {name, email, password}
   * @return {Boolean} Always True, or 500 status
   */
   registerUser(data){
@@ -76,7 +76,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Update songs in a Playlist
-  * @param {Object} data - {source, id, url} 
+  * @param {Object} data - {source, id, url}
   * @return {Object} {total, missing}
   */
   updatePlaylist(data){
@@ -89,7 +89,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Unlink a playlist from a user
-  * @param {Integer} playlistId 
+  * @param {Integer} playlistId
   * @return {Object} {bool}
   */
   unlinkPlaylist(playlistId){
@@ -102,7 +102,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Read a new playlist
-  * @param {Object} data - {url} 
+  * @param {Object} data - {url}
   * @return {Object} {id, url, name, source, total, missing}
   */
   registerPlaylist(data){
@@ -115,7 +115,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Request to start a full download of playlist
-  * @param {Integer} playlistId 
+  * @param {Integer} playlistId
   * @return {Object} {success}
   */
   downloadFull(playlistId){
@@ -128,7 +128,7 @@ export default class PldAuthService extends EventEmitter{
   }
   /**
   * Request to start a partial download of playlist
-  * @param {Integer} playlistId 
+  * @param {Integer} playlistId
   * @return {Object} {success}
   */
   downloadPartial(playlistId){

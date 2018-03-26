@@ -11,13 +11,9 @@ class Ovc(Scrapper):
         self.name = 'OnlineVideoConverter'
 
     def get_link(self):
-        r = requests.post(
-            url='https://www2.onlinevideoconverter.com/webservice',
-            headers={
-                'Accept': 'application/json, text/javascript, */*; q=0.01',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-            },
+        s = requests.session()
+        s.get("https://www.onlinevideoconverter.com/es/mp3-converter")
+        r = s.post("https://www2.onlinevideoconverter.com/webservice",
             data={
                 'function': 'validate',
                 'args[urlEntryUser]': 'https://www.youtube.com/watch?v=%s' % self.idvideo,
@@ -33,7 +29,7 @@ class Ovc(Scrapper):
             }
         )
         # print(r.json())
-        r = requests.get('https://www.onlinevideoconverter.com/es/success?id=%s' % r.json()['result']['dPageId'])
+        r = s.get('https://www.onlinevideoconverter.com/es/success?id=%s' % r.json()['result']['dPageId'])
         # print(r.)
         parser = etree.HTMLParser()
         tree = etree.parse(StringIO(r.text), parser)

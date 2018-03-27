@@ -1,3 +1,4 @@
+import logging
 from queue import Queue
 from threading import Thread
 from linkgenerators.soundcloud import ScDownloader
@@ -7,6 +8,10 @@ from linkgenerators.youtubetomp3cc import Mp3Cc
 from linkgenerators.onlinevideoconverter import Ovc
 from linkgenerators.twoconv import TwoConv
 from linkgenerators.convert2mp3 import ConvertToMp3
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class LinkGenerator(Thread):
     def __init__(self, idsqueue, linksqueue, maxtime, sc_client_id):
@@ -43,5 +48,5 @@ class LinkGenerator(Thread):
                 # obj['playlist_queue'].put(False)
                 # self.linksqueue.put(obj)
                 self.linksqueue.put({**obj, **{'link': None}})
-                print('Ningun metodo pudo obtener el link en menos de {} segundos'.format(self.maxtime))
+                logging.warning('Ningun metodo pudo obtener el link en menos de {} segundos'.format(self.maxtime))
             self.idsqueue.task_done()

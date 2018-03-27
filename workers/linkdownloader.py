@@ -1,7 +1,12 @@
 import os
 import requests
+import logging
 from threading import Thread
 import utils.utils as U
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class LinkDownloader(Thread):
     def __init__(self, linksqueue):
@@ -20,26 +25,30 @@ class LinkDownloader(Thread):
         # Actualizar cuales canciones adicionales se han descargado y avisar al usuario que termino la descarga
         finished_download_callback(songs_id=songs_id)
 
-    @classmethod
-    def Download(cls, link, playlist_path, mp3name, headers=None):
+    @staticmethod
+    def Download(link, playlist_path, mp3name, headers=None):
         mp3name = U.remove_special_characters(mp3name)
-        try:
-            completesongname = '/'.join([playlist_path, mp3name])
-            b = 0
-            while b < 100000:
-                r = requests.get(link, headers=headers, stream=True)
-                if r.status_code == 404:
-                    print('{} error 404'.format(link))
-                    return False
-                with open(completesongname, "wb") as code:
-                    for chunk in r.iter_content(1024):
-                        if not chunk:
-                            break
-                        code.write(chunk)
-                b = os.path.getsize(completesongname)
-            return True
-        except:
-            return False
+        # try:
+        completesongname = '/'.join([playlist_path, mp3name])
+        b = 0
+        print(completesongname)
+        while b < 100000:
+            r = requests.get(link, headers=headers, stream=True)
+            print("1")
+            if r.status_code == 404:
+                logging.warning('{} error 404'.format(link))
+                return False
+            with open(completesongname, "wb") as code:
+                for chunk in r.iter_content(1024):
+                    if not chunk:
+                        break
+                    code.write(chunk)
+            b = os.path.getsize(completesongname)
+            print(b)
+        logging.info('Song %s downloaded' % mp3name)
+        return True
+        # except:
+        #     return False
 
     def run(self):
         while True:
@@ -69,5 +78,5 @@ class LinkDownloader(Thread):
                     folder_path=obj['playlist_path'])
                 # Borrar la carpeta
                 U.delete_folder(obj['playlist_path'])
-                print('Playlist {} descargada'.format(obj['playlist_name']))
+                logging.info('Playlist {} descargada'.format(obj['playlist_name']))
             self.linksqueue.task_done()

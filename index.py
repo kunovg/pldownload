@@ -19,9 +19,9 @@ from workers.linkdownloader import LinkDownloader
 from workers.linkgenerator import LinkGenerator
 
 config = json.load(open("config.json", "r"))
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 eventlet.monkey_patch()  # Resuelve el emit dentro de threads
 app = Flask(__name__)

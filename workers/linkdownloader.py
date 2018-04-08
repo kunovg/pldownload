@@ -32,9 +32,9 @@ class LinkDownloader(Thread):
         completesongname = '/'.join([playlist_path, mp3name])
         b = 0
         print(completesongname)
-        while b < 100000:
+        iterations = 0
+        while b < 1000000 and iterations < 5:
             r = requests.get(link, headers=headers, stream=True)
-            print("1")
             if r.status_code == 404:
                 logging.warning('{} error 404'.format(link))
                 return False
@@ -44,9 +44,12 @@ class LinkDownloader(Thread):
                         break
                     code.write(chunk)
             b = os.path.getsize(completesongname)
-            print(b)
-        logging.info('Song %s downloaded' % mp3name)
-        return True
+            iterations += 1
+        if b > 1000000:
+            logging.info('Song %s downloaded' % mp3name)
+            return True
+        logging.error('Could not download %s with link %s' % (mp3name, link))
+        return False
         # except:
         #     return False
 
